@@ -7,8 +7,8 @@
 #include "TestModel.h"
 #include "renderer/raytracerenderer.h"
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 256
+#define SCREEN_WIDTH 720
+#define SCREEN_HEIGHT 720
 
 int main(int argc, char** argv)
 {
