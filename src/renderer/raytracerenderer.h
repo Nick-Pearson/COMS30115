@@ -29,6 +29,7 @@ public:
   virtual void Draw(const std::vector<TestTriangle>& mesh) override;
 
   bool ClosestIntersection(vec4 start, vec4 dir, const std::vector<TestTriangle>& triangles, Intersection& closestInteraction);
+  vec3 DirectLight(const vec4& intersectionPosition, const TestTriangle& triangle);
 };
 
 #endif
