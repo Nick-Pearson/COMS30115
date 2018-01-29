@@ -1,6 +1,5 @@
 #include <iostream>
 #include <glm/glm.hpp>
-#include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModel.h"
 #include <stdint.h>
@@ -27,7 +26,7 @@ void Interpolate(T a, T b, std::vector<T>& result);
 int main( int argc, char* argv[] )
 {
   screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
-   t = SDL_GetTicks(); /*Set start value for timer.*/
+  t = SDL_GetTicks(); /*Set start value for timer.*/
 
 
 
