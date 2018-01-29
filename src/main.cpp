@@ -2,13 +2,15 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
-#include <SDL.h>
+#include "SDLauxiliary.h"
 
 #include "TestModel.h"
 #include "renderer/raytracerenderer.h"
 
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 720
+
+void Update(float deltaMilliseconds);
 
 int main(int argc, char** argv)
 {
@@ -17,6 +19,8 @@ int main(int argc, char** argv)
   std::vector<TestTriangle> mesh;
   LoadTestModel(mesh);
 
+  int t = SDL_GetTicks();
+
   while( NoQuitMessageSDL() )
   {
     //render the scene
@@ -24,9 +28,19 @@ int main(int argc, char** argv)
     renderer->Draw(mesh);
     renderer->SwapBuffers();
 
+    int t2 = SDL_GetTicks();
+    float dt = t2 - t;
+
     // update gameplay code
-    //Update();
+    Update(dt);
+
+    t = t2;
   }
 
   return 0;
+}
+
+void Update(float deltaMilliseconds)
+{
+  std::cout << "Last frame time " << deltaMilliseconds << " ms" << std::endl;
 }
