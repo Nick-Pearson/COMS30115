@@ -2,7 +2,8 @@
 #define RAYTRACE_RENDERER_H
 
 #include "renderer.h"
-#include "glm/glm.hpp"
+
+#include <glm/glm.hpp>
 
 using glm::vec4;
 using glm::mat4;

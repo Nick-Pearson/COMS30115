@@ -1,6 +1,7 @@
 #include "raytracerenderer.h"
 
 #include <glm/gtx/norm.hpp>
+#include <glm/gtc/matrix_access.hpp>
 
 void RaytraceRenderer::Draw(const std::vector<TestTriangle>& mesh)
 {
@@ -85,13 +86,18 @@ bool RaytraceRenderer::ClosestIntersection(vec4 start, vec4 dir, const std::vect
     vec3 b = vec3(start.x-v0.x, start.y-v0.y, start.z-v0.z);
 
     mat3 A( -vec3(dir[0], dir[1], dir[2]), e1, e2 );
-    vec3 x = glm::inverse( A ) * b;
+    const float detA = glm::determinant(A);
 
-    float t = x[0];
-    float u = x[1];
-    float v = x[2];
+    // solve t first and check if it is valid
+    float t = glm::determinant(glm::column(A, 0, b)) / detA;
 
-    if (t >= 0 && u >= 0 && v >= 0 && u + v <= 1 && t < closestIntersection.distance && (allowZeroDist || t > 0.01f))
+    if(t < 0 || t > closestIntersection.distance || (!allowZeroDist && t < 0.01f))
+      continue;
+
+    float u = glm::determinant(glm::column(A, 1, b)) / detA;
+    float v = glm::determinant(glm::column(A, 2, b)) / detA;
+
+    if (u >= 0 && v >= 0 && u + v <= 1)
     {
       closestIntersection.distance = t;
       closestIntersection.position = start + (t * dir);
