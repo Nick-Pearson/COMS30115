@@ -1,13 +1,9 @@
 #include "renderer.h"
 
-Renderer::Renderer(int ScreenWidth, int ScreenHeight)
+void Renderer::Initialise(int ScreenWidth, int ScreenHeight, Camera* inCamera)
 {
   screenptr = InitializeSDL( ScreenWidth, ScreenHeight, false );
-}
-
-void Renderer::Initialise()
-{
-
+  camera = inCamera;
 }
 
 void Renderer::Clear()

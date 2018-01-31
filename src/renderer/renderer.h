@@ -5,12 +5,12 @@
 
 #include "../SDLauxiliary.h"
 
+class Camera;
+
 class Renderer
 {
 public:
-  Renderer(int ScreenWidth, int ScreenHeight);
-
-  virtual void Initialise();
+  virtual void Initialise(int ScreenWidth, int ScreenHeight, Camera* inCamera);
 
   void Clear();
   virtual void Draw(const std::vector<TestTriangle>& mesh) = 0;
@@ -19,6 +19,8 @@ public:
 protected:
 
   screen* screenptr = nullptr;
+
+  Camera* camera = nullptr;
 };
 
 #endif

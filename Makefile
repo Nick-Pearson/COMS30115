@@ -51,4 +51,4 @@ $(B_DIR)/%.d: %.cpp
 clean:
 	rm -rf $(B_DIR)
 
-#-include $(SRCS:%.cpp=$(B_DIR)/%.d)
+-include $(SRCS:%.cpp=$(B_DIR)/%.d)

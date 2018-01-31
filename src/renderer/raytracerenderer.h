@@ -23,13 +23,9 @@ class RaytraceRenderer : public Renderer
 {
 public:
 
-  RaytraceRenderer(int ScreenWidth, int ScreenHeight) :
-    Renderer(ScreenWidth, ScreenHeight)
-  {}
-
   virtual void Draw(const std::vector<TestTriangle>& mesh) override;
 
-  bool ClosestIntersection(vec4 start, vec4 dir, const std::vector<TestTriangle>& triangles, Intersection& closestInteraction, bool allowZeroDist = true);
+  bool ClosestIntersection(vec4 start, vec4 dir, const std::vector<TestTriangle>& triangles, Intersection& closestInteraction);
   vec3 DirectLight(const Intersection& intersection, const std::vector<TestTriangle>& mesh);
 };
 

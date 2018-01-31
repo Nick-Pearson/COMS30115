@@ -6,6 +6,7 @@
 
 #include "TestModel.h"
 #include "renderer/raytracerenderer.h"
+#include "scene/camera.h"
 
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 720
@@ -14,7 +15,9 @@ void Update(float deltaMilliseconds);
 
 int main(int argc, char** argv)
 {
-  Renderer* renderer = new RaytraceRenderer(SCREEN_WIDTH, SCREEN_HEIGHT);
+  Camera* camera = new Camera(500.0f, glm::vec3(0, 0, -2.4));
+  Renderer* renderer = new RaytraceRenderer;
+  renderer->Initialise(SCREEN_WIDTH, SCREEN_HEIGHT, camera);
 
   std::vector<TestTriangle> mesh;
   LoadTestModel(mesh);
@@ -33,6 +36,7 @@ int main(int argc, char** argv)
 
     // update gameplay code
     Update(dt);
+    camera->Update(dt / 1000.0f);
 
     t = t2;
   }

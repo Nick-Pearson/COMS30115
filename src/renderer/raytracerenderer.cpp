@@ -1,18 +1,20 @@
 #include "raytracerenderer.h"
 
+#include "../scene/camera.h"
+
 #include <glm/gtx/norm.hpp>
 #include <glm/gtc/matrix_access.hpp>
 
 void RaytraceRenderer::Draw(const std::vector<TestTriangle>& mesh)
 {
-  float focalLength = 500;
-  vec4 cameraPos = vec4(0, 0, -2.4, 1);
+  float focalLength = camera->focalLength;
+  vec4 cameraPos = vec4(camera->position, 1);
 
   for (int y = 0; y < screenptr->height; y++)
   {
     for (int x = 0; x < screenptr->width; x++)
     {
-      vec4 dir = vec4(x - (screenptr->width / 2), y - (screenptr->height / 2), focalLength, 1);
+      vec4 dir = camera->rotationMatrix * vec4(x - (screenptr->width / 2), y - (screenptr->height / 2), focalLength, 1);
 
       Intersection closestIntersection;
 
@@ -36,7 +38,7 @@ vec3 RaytraceRenderer::DirectLight(const Intersection& intersection, const std::
   {
     Intersection shadowIntersection;
     vec3 shadowDir = lightPos - vec3(intersection.position);
-    if(ClosestIntersection(intersection.position, vec4(shadowDir, 1.0f), mesh, shadowIntersection, false))
+    if(ClosestIntersection(intersection.position, vec4(shadowDir, 1.0f), mesh, shadowIntersection))
     {
       if(shadowIntersection.distance < 1.0f)
         return vec3(0, 0, 0);
@@ -58,11 +60,13 @@ vec3 RaytraceRenderer::DirectLight(const Intersection& intersection, const std::
 }
 
 
-bool RaytraceRenderer::ClosestIntersection(vec4 start, vec4 dir, const std::vector<TestTriangle>& triangles, Intersection& closestIntersection, bool allowZeroDist /*= true*/)
+bool RaytraceRenderer::ClosestIntersection(vec4 start, vec4 dir, const std::vector<TestTriangle>& triangles, Intersection& closestIntersection)
 {
   closestIntersection.distance = std::numeric_limits<float>::max();
   closestIntersection.triangleIndex = -1;
   closestIntersection.position = vec4(0, 0, 0, 0);
+
+  vec3 dirNormalized = glm::normalize(vec3(dir));
 
   for (size_t i = 0; i < triangles.size(); i++)
   {
@@ -76,9 +80,7 @@ bool RaytraceRenderer::ClosestIntersection(vec4 start, vec4 dir, const std::vect
     vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
 
     // Dot product optimisation
-    vec3 rayLine = vec3(dir.x - start.x, dir.y - start.y, dir.z - start.z);
-    vec3 triangleNormal = glm::cross(e1, e2);
-    if (glm::dot(triangleNormal, rayLine) == 1)
+    if (glm::dot(triangle.normal, dirNormalized) >= 0.0f)
     {
       continue;
     }
@@ -91,7 +93,7 @@ bool RaytraceRenderer::ClosestIntersection(vec4 start, vec4 dir, const std::vect
     // solve t first and check if it is valid
     float t = glm::determinant(glm::column(A, 0, b)) / detA;
 
-    if(t < 0 || t > closestIntersection.distance || (!allowZeroDist && t < 0.01f))
+    if(t < 0 || t > closestIntersection.distance)
       continue;
 
     float u = glm::determinant(glm::column(A, 1, b)) / detA;
