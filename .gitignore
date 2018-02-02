@@ -1,1 +1,12 @@
 build/
+
+# Windows & Visual Studio Ignores
+
+*.sln
+*.suo
+*.*db
+*.dll
+*.vcxproj*
+
+x64/
+.vs/

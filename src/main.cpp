@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     renderer->SwapBuffers();
 
     int t2 = SDL_GetTicks();
-    float dt = t2 - t;
+    float dt = (float)(t2 - t);
 
     // update gameplay code
     Update(dt);

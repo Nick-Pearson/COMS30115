@@ -49,7 +49,7 @@ vec3 RaytraceRenderer::DirectLight(const Intersection& intersection, const std::
   float d_sqrd = glm::length2(rHat);
   rHat = glm::normalize(rHat);
 
-  float a = 4 * 3.14 * d_sqrd;
+  float a = 4.0f * 3.14f * d_sqrd;
 
   float rAndN = glm::dot(triangle.normal, rHat);
 
@@ -66,8 +66,6 @@ bool RaytraceRenderer::ClosestIntersection(vec4 start, vec4 dir, const std::vect
   closestIntersection.triangleIndex = -1;
   closestIntersection.position = vec4(0, 0, 0, 0);
 
-  vec3 dirNormalized = glm::normalize(vec3(dir));
-
   for (size_t i = 0; i < triangles.size(); i++)
   {
     TestTriangle triangle = triangles[i];
@@ -80,7 +78,7 @@ bool RaytraceRenderer::ClosestIntersection(vec4 start, vec4 dir, const std::vect
     vec3 e2 = vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
 
     // Dot product optimisation
-    if (glm::dot(triangle.normal, dirNormalized) >= 0.0f)
+    if (glm::dot(triangle.normal, vec3(dir)) >= 0.0f)
     {
       continue;
     }
