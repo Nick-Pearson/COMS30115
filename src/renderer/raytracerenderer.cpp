@@ -3,6 +3,10 @@
 #include "../scene/camera.h"
 #include "../mesh/mesh.h"
 
+#include <omp.h>
+#include <math.h>
+
+
 #include <glm/gtx/norm.hpp>
 
 using glm::vec4;
@@ -13,19 +17,30 @@ void RaytraceRenderer::Draw(const Scene* scene)
 {
   float focalLength = scene->camera->focalLength;
 
-  for (int y = 0; y < screenptr->height; y++)
+  int screenWidth = screenptr->width;
+  int screenHeight = screenptr->height;
+  int sceenWidthHalf = screenWidth * 0.5;
+  int screenHeightHalf = screenHeight * 0.5;
+  mat4 rotationMatrix = scene->camera->rotationMatrix;
+  vec3 cameraPosition = scene->camera->position;
+
+  #pragma omp parallel for schedule(static)
+  for (int y = 0; y < screenHeight; y++)
   {
-    for (int x = 0; x < screenptr->width; x++)
+    for (int x = 0; x < screenWidth; x++)
     {
-      vec4 dir = scene->camera->rotationMatrix * vec4(x - (screenptr->width / 2), y - (screenptr->height / 2), focalLength, 1);
+      vec4 dir = rotationMatrix * vec4(x - sceenWidthHalf, y - screenHeightHalf, focalLength, 1);
 
       Intersection closestIntersection;
 
-      if (scene->ClosestIntersection(scene->camera->position, vec3(dir), closestIntersection))
+      if (scene->ClosestIntersection(cameraPosition, vec3(dir), closestIntersection))
       {
         vec3 lightColour = DirectLight(closestIntersection, scene);
         vec3 colour = lightColour * closestIntersection.mesh->Triangles[closestIntersection.triangleIndex].colour;
+
+
         PutPixelSDL(screenptr, x, y, colour);
+
       }
     }
   }
@@ -50,7 +65,7 @@ vec3 RaytraceRenderer::DirectLight(const Intersection& intersection, const Scene
   float d_sqrd = glm::length2(rHat);
   rHat = glm::normalize(rHat);
 
-  float a = 4.0f * 3.14f * d_sqrd;
+  float a = 4.0f * M_PI * d_sqrd;
 
   float rAndN = glm::dot(intersection.mesh->Triangles[intersection.triangleIndex].normal, rHat);
 

@@ -74,7 +74,7 @@ shared_ptr<Mesh> MeshFactory::GetCornelRoom()
 		vert.position.y *= -1;
 	}
 
-  return make_shared<Mesh>(verts, triangles);
+  return shared_ptr<Mesh>(new Mesh(verts, triangles));
 }
 
 shared_ptr<Mesh> MeshFactory::GetCube(const vec3& colour, const glm::vec3& pos, const glm::vec3& scale)
@@ -107,12 +107,12 @@ shared_ptr<Mesh> MeshFactory::GetCube(const vec3& colour, const glm::vec3& pos, 
   AddQuad(4, 5, 6, 7, colour, triangles);
   AddQuad(2, 0, 6, 4, colour, triangles);
   AddQuad(1, 3, 5, 7, colour, triangles);
-  
+
   for (Vertex& vert : verts)
   {
 	  vert.position *= scale;
 	  vert.position += pos;
   }
 
-  return make_shared<Mesh>(verts, triangles);
+  return shared_ptr<Mesh>(new Mesh(verts, triangles));
 }

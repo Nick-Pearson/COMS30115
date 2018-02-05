@@ -37,10 +37,11 @@ int main(int argc, char** argv)
 
     int t2 = SDL_GetTicks();
     float dt = (float)(t2 - t);
+    float fps = 1000 / dt ;
 
     // update gameplay code
-	std::cout << "Last frame time " << dt << " ms" << std::endl;
-	scene->Update(dt / 1000.0f);
+    std::cout << "FPS: " << fps << " last frame time " << dt << " ms" << std::endl;
+    scene->Update(dt / 1000.0f);
 
     t = t2;
   }
