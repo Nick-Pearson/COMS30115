@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include <glm\glm.hpp>
+#include <glm/glm.hpp>
 
 class Mesh;
 class Camera;
@@ -29,10 +29,10 @@ public:
 	~Scene();
 
 	void Update(float DeltaSeconds);
-	
+
 	bool ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection) const;
 
-	void AddMesh(std::shared_ptr<Mesh>& mesh) { Meshes.push_back(mesh); }
+	void AddMesh(std::shared_ptr<Mesh> mesh) { Meshes.push_back(mesh); }
 
 	Camera* camera;
 

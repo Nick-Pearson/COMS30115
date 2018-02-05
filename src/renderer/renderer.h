@@ -10,6 +10,8 @@ class Scene;
 class Renderer
 {
 public:
+  virtual ~Renderer() {}
+
   virtual void Initialise(int ScreenWidth, int ScreenHeight);
 
   void Clear();
