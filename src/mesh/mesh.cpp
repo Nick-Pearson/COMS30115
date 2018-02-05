@@ -4,6 +4,7 @@ Mesh::Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangle
   Verticies(inVerticies), Triangles(inTriangles)
 {
 	CacheNormals();
+	CalculateBounds();
 }
 
 void Mesh::CacheNormals()
@@ -14,4 +15,12 @@ void Mesh::CacheNormals()
 		const vec3 e2 = Verticies[tri.v2].position - Verticies[tri.v0].position;
 		tri.normal = glm::normalize(glm::cross(e2, e1));
 	}
+}
+
+void Mesh::CalculateBounds()
+{
+	bounds = Box();
+
+	for (const Vertex& vert : Verticies)
+		bounds += vert.position;
 }

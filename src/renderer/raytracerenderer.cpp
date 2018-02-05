@@ -17,8 +17,8 @@
 #define NUM_DIRS 0
 
 // takes around 4 mins for 720x720
-//#define MAX_BOUNCES 2
-//#define NUM_DIRS 16
+//#define MAX_BOUNCES 0
+//#define NUM_DIRS 32
 
 // takes around 10 secs for 720x720
 //#define MAX_BOUNCES 2
@@ -35,8 +35,8 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
   int screenWidth = screenptr->width;
   int screenHeight = screenptr->height;
-  int sceenWidthHalf = screenWidth * 0.5;
-  int screenHeightHalf = screenHeight * 0.5;
+  int sceenWidthHalf = (int)(screenWidth * 0.5f);
+  int screenHeightHalf = (int)(screenHeight * 0.5f);
   mat4 rotationMatrix = scene->camera->rotationMatrix;
   vec3 cameraPosition = scene->camera->position;
 
@@ -72,7 +72,7 @@ vec3 RaytraceRenderer::DirectLight(const Intersection& intersection, const Scene
   float d_sqrd = glm::length2(rHat);
   rHat = glm::normalize(rHat);
 
-  float a = 4.0f * M_PI * d_sqrd;
+  float a = 4.0f * (float)M_PI * d_sqrd;
 
   float rAndN = glm::dot(intersection.mesh->Triangles[intersection.triangleIndex].normal, rHat);
 
@@ -113,9 +113,12 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
       rotationMatrix = glm::rotate(rotationMatrix, theta3, glm::vec3(0.0f, 0.0f, 1.0f));
 
       const glm::vec3 dir = vec3(vec4(triangleNormal, 1.0f) * rotationMatrix);
-      //const float lightFactor = glm::dot(dir, triangleNormal);
+      const float lightFactor = glm::dot(dir, triangleNormal);
 
-      indirectLight += ShadePoint_Internal(intersection.position, dir, scene, curDepth - 1);
+	  if (lightFactor <= 0.0f)
+		  continue;
+
+      indirectLight += lightFactor * ShadePoint_Internal(intersection.position, dir, scene, curDepth - 1);
     }
 
     light += (indirectLight / (float)NUM_DIRS);

@@ -7,7 +7,7 @@
 
 Scene::Scene()
 {
-	camera = new Camera(500.0f, glm::vec3(0, 0, -2.4));
+	camera = new Camera(250.0f, glm::vec3(0, 0, -2.4));
 }
 
 Scene::~Scene()
@@ -30,6 +30,8 @@ bool Scene::ClosestIntersection(const vec3& start, const vec3& dir, Intersection
 
 	for (const std::shared_ptr<Mesh> mesh : Meshes)
 	{
+		if(!mesh->bounds.DoesIntersect(start, dir)) continue;
+
 		for (size_t i = 0; i < mesh->Triangles.size(); i++)
 		{
 			Triangle& triangle = mesh->Triangles[i];

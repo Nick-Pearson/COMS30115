@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include "../structs/box.h"
+
 using namespace glm;
 using namespace std;
 
@@ -48,6 +50,9 @@ public:
   vector<Vertex> Verticies;
   vector<Triangle> Triangles;
 
+  Box bounds;
+
 private:
 	void CacheNormals();
+	void CalculateBounds();
 };
