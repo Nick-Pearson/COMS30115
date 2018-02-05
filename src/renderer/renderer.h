@@ -18,6 +18,8 @@ public:
   virtual void Draw(const Scene* scene) = 0;
   void SwapBuffers();
 
+  void SaveCurrentFrame(const char* filename);
+
 protected:
 
   screen* screenptr = nullptr;
