@@ -4,9 +4,9 @@
 #include <glm/glm.hpp>
 #include "SDLauxiliary.h"
 
-#include "TestModel.h"
 #include "renderer/raytracerenderer.h"
-#include "scene/camera.h"
+#include "scene/scene.h"
+#include "mesh/meshfactory.h"
 
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 720
@@ -15,9 +15,13 @@ void Update(float deltaMilliseconds);
 
 int main(int argc, char** argv)
 {
-  Camera* camera = new Camera(500.0f, glm::vec3(0, 0, -2.4));
+  Scene* scene = new Scene;
+  scene->AddMesh(MeshFactory::GetCornelRoom());
+  scene->AddMesh(MeshFactory::GetCube(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-0.4f, 0.4f, 0.3f), glm::vec3(0.5f, 1.2f, 0.5f)));
+  scene->AddMesh(MeshFactory::GetCube(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.4f, 0.7f, -0.3f), glm::vec3(0.5f, 0.5f, 0.5f)));
+
   Renderer* renderer = new RaytraceRenderer;
-  renderer->Initialise(SCREEN_WIDTH, SCREEN_HEIGHT, camera);
+  renderer->Initialise(SCREEN_WIDTH, SCREEN_HEIGHT);
 
   std::vector<TestTriangle> mesh;
   LoadTestModel(mesh);
@@ -28,23 +32,21 @@ int main(int argc, char** argv)
   {
     //render the scene
     renderer->Clear();
-    renderer->Draw(mesh);
+    renderer->Draw(scene);
     renderer->SwapBuffers();
 
     int t2 = SDL_GetTicks();
     float dt = (float)(t2 - t);
 
     // update gameplay code
-    Update(dt);
-    camera->Update(dt / 1000.0f);
+	std::cout << "Last frame time " << dt << " ms" << std::endl;
+	scene->Update(dt / 1000.0f);
 
     t = t2;
   }
 
-  return 0;
-}
+  delete renderer;
+  delete scene;
 
-void Update(float deltaMilliseconds)
-{
-  std::cout << "Last frame time " << deltaMilliseconds << " ms" << std::endl;
+  return 0;
 }

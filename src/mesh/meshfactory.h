@@ -1,3 +1,6 @@
+#ifndef MESHFACTORY_H
+#define  MESHFACTORY_H
+
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -11,7 +14,7 @@ class Mesh;
 namespace MeshFactory
 {
   // TODO: Loading of any mesh from a file
-  shared_ptr<Mesh> LoadFromFile() { return nullptr; }
+  //shared_ptr<Mesh> LoadFromFile() { return nullptr; }
 
   // A set of primatives for reuse
 
@@ -19,5 +22,7 @@ namespace MeshFactory
   shared_ptr<Mesh> GetCornelRoom();
 
   // returns a cube of 1 unit dimensions
-  shared_ptr<Mesh> GetCube(const glm::vec3& colour);
+  shared_ptr<Mesh> GetCube(const glm::vec3& colour, const glm::vec3& pos, const glm::vec3& scale);
 };
+
+#endif
