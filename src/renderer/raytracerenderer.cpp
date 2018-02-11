@@ -3,6 +3,7 @@
 #include "../scene/camera.h"
 #include "../scene/scene.h"
 #include "../mesh/mesh.h"
+#include "../texture/texture.h"
 
 #include <iostream>
 #include <random>
@@ -13,12 +14,12 @@
 #include <glm/gtx/transform.hpp>
 
 // no indirect light
-#define MAX_BOUNCES 0
-#define NUM_DIRS 0
+//#define MAX_BOUNCES 0
+//#define NUM_DIRS 0
 
 // takes around 4 mins for 720x720
-//#define MAX_BOUNCES 0
-//#define NUM_DIRS 32
+#define MAX_BOUNCES 0
+#define NUM_DIRS 16
 
 // takes around 10 secs for 720x720
 //#define MAX_BOUNCES 2
@@ -91,7 +92,7 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
 {
   Intersection intersection;
   if (!scene->ClosestIntersection(position, dir, intersection))
-    return vec3(0.0f, 0.0f, 0.0f);
+    return scene->GetEnvironmentColour(dir);
 
   vec3 light = DirectLight(intersection, scene);
 
@@ -112,7 +113,7 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
       rotationMatrix = glm::rotate(rotationMatrix, theta2, glm::vec3(0.0f, 1.0f, 0.0f));
       rotationMatrix = glm::rotate(rotationMatrix, theta3, glm::vec3(0.0f, 0.0f, 1.0f));
 
-      const glm::vec3 dir = vec3(vec4(triangleNormal, 1.0f) * rotationMatrix);
+      const glm::vec3 dir = glm::normalize(vec3(vec4(triangleNormal, 1.0f) * rotationMatrix));
       const float lightFactor = glm::dot(dir, triangleNormal);
 
 	  if (lightFactor <= 0.0f)

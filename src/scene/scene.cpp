@@ -2,17 +2,20 @@
 
 #include "camera.h"
 #include "../mesh/mesh.h"
+#include "../texture/texturecubemap.h"
 
 #include <glm/gtc/matrix_access.hpp>
 
 Scene::Scene()
 {
 	camera = new Camera(250.0f, glm::vec3(0, 0, -2.4));
+	environment = new TextureCubemap("skyboxes/Maskonaive");
 }
 
 Scene::~Scene()
 {
 	delete camera;
+	delete environment;
 }
 
 void Scene::Update(float DeltaSeconds)
@@ -74,4 +77,12 @@ bool Scene::ClosestIntersection(const vec3& start, const vec3& dir, Intersection
 	}
 
 	return closestIntersection.triangleIndex != -1;
+}
+
+vec3 Scene::GetEnvironmentColour(const vec3& dir) const
+{
+	if(environment)
+		return environment->GetCubemapColour(dir);
+	
+	return vec3(0.0f, 0.0f, 0.0f);
 }

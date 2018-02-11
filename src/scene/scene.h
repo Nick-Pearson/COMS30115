@@ -8,6 +8,7 @@
 
 class Mesh;
 class Camera;
+class Cubemap;
 
 using glm::mat4;
 using glm::vec3;
@@ -34,7 +35,11 @@ public:
 
 	void AddMesh(std::shared_ptr<Mesh> mesh) { Meshes.push_back(mesh); }
 
+	vec3 GetEnvironmentColour(const vec3& dir) const;
+
 	Camera* camera;
+
+	Cubemap* environment;
 
 private:
 	std::vector<std::shared_ptr<Mesh>> Meshes;
