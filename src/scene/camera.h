@@ -6,13 +6,13 @@
 class Camera
 {
 public:
-  Camera(float inFocalLength, const glm::vec3& inPosition) :
-    focalLength(inFocalLength), position(inPosition)
+  Camera(float inFOV, const glm::vec3& inPosition) :
+	  FOV(inFOV), position(inPosition)
   {}
 
   void Update(float deltaSeconds);
 
-  float focalLength;
+  float FOV;
   glm::vec3 position;
   glm::mat4 rotationMatrix = glm::mat4();
 };

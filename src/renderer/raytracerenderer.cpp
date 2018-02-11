@@ -26,20 +26,22 @@
 //#define NUM_DIRS 4
 
 
+#define TWO_PI 6.283185f
+
 using glm::vec4;
 using glm::mat4;
 using glm::mat3;
 
 void RaytraceRenderer::Draw(const Scene* scene)
 {
-  float focalLength = scene->camera->focalLength;
-
   int screenWidth = screenptr->width;
   int screenHeight = screenptr->height;
   int sceenWidthHalf = (int)(screenWidth * 0.5f);
   int screenHeightHalf = (int)(screenHeight * 0.5f);
   mat4 rotationMatrix = scene->camera->rotationMatrix;
   vec3 cameraPosition = scene->camera->position;
+
+  float focalLength = screenWidth / (2.0f * tan(scene->camera->FOV / TWO_PI));
 
   #pragma omp parallel for schedule(static)
   for (int y = 0; y < screenHeight; y++)
@@ -62,10 +64,9 @@ vec3 RaytraceRenderer::DirectLight(const Intersection& intersection, const Scene
   {
     Intersection shadowIntersection;
     vec3 shadowDir = lightPos - vec3(intersection.position);
-    if(scene->ClosestIntersection(intersection.position, shadowDir, shadowIntersection))
+    if(scene->ShadowIntersection(intersection.position, shadowDir, shadowIntersection))
     {
-      if(shadowIntersection.distance < 1.0f)
-        return vec3(0, 0, 0);
+      return vec3(0, 0, 0);
     }
   }
 

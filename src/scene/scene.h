@@ -17,9 +17,9 @@ using glm::mat3;
 struct Intersection
 {
 	vec3 position;
-	float distance;
-	std::shared_ptr<Mesh> mesh;
-	int triangleIndex;
+	float distance = 0.0f;
+	std::shared_ptr<Mesh> mesh = nullptr;
+	int triangleIndex = -1;
 };
 
 class Scene
@@ -32,6 +32,7 @@ public:
 	void Update(float DeltaSeconds);
 
 	bool ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection) const;
+	bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
 
 	void AddMesh(std::shared_ptr<Mesh> mesh) { Meshes.push_back(mesh); }
 
@@ -42,6 +43,11 @@ public:
 	Cubemap* environment;
 
 private:
+
 	std::vector<std::shared_ptr<Mesh>> Meshes;
+
+	// querys the scene for intersections, will return if the predicate function returns true
+	template<typename Func>
+	bool IntersectScene_Internal(const vec3& start, const vec3& dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false) const;
 };
 #endif
