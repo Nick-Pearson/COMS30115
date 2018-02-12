@@ -9,8 +9,8 @@
 #include "scene/scene.h"
 #include "mesh/meshfactory.h"
 
-#define SCREEN_WIDTH 360
-#define SCREEN_HEIGHT 360
+#define SCREEN_WIDTH 720
+#define SCREEN_HEIGHT 720
 #define SINGLE_FRAME 0
 
 void Update(float deltaMilliseconds);

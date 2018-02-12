@@ -4,6 +4,7 @@
 #include "../scene/scene.h"
 #include "../mesh/mesh.h"
 #include "../texture/texture.h"
+#include "../material/material.h"
 
 #include <iostream>
 #include <random>
@@ -18,11 +19,11 @@
 //#define NUM_DIRS 0
 
 // takes around 4 mins for 720x720
-#define MAX_BOUNCES 0
+#define MAX_BOUNCES 2
 #define NUM_DIRS 16
 
 // takes around 10 secs for 720x720
-//#define MAX_BOUNCES 2
+//#define MAX_BOUNCES 0
 //#define NUM_DIRS 4
 
 
@@ -56,10 +57,10 @@ void RaytraceRenderer::Draw(const Scene* scene)
   }
 }
 
-vec3 RaytraceRenderer::DirectLight(const Intersection& intersection, const Scene* scene)
+vec3 RaytraceRenderer::DirectLight(const vec3& view, const Intersection& intersection, const Scene* scene)
 {
   vec3 lightPos( 0, -0.5, -0.7 );
-  vec3 lightColor = 14.f * vec3( 1, 1, 1 );
+  vec3 lightColor = 400.f * vec3( 1, 1, 1 );
 
   {
     Intersection shadowIntersection;
@@ -76,12 +77,12 @@ vec3 RaytraceRenderer::DirectLight(const Intersection& intersection, const Scene
 
   float a = 4.0f * (float)M_PI * d_sqrd;
 
-  float rAndN = glm::dot(intersection.mesh->Triangles[intersection.triangleIndex].normal, rHat);
+  float brdf = Material::CalculateBRDF(view, rHat, intersection.mesh->Triangles[intersection.triangleIndex].normal);
 
-  if (rAndN < 0)
+  if (brdf < 0)
     return vec3(0,0,0);
 
-  return rAndN * lightColor / a;
+  return brdf * lightColor / a;
 }
 
 vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const Scene* scene)
@@ -95,7 +96,7 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
   if (!scene->ClosestIntersection(position, dir, intersection))
     return scene->GetEnvironmentColour(dir);
 
-  vec3 light = DirectLight(intersection, scene);
+  vec3 light = DirectLight(dir, intersection, scene);
 
   if(curDepth > 0)
   {
@@ -114,13 +115,13 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
       rotationMatrix = glm::rotate(rotationMatrix, theta2, glm::vec3(0.0f, 1.0f, 0.0f));
       rotationMatrix = glm::rotate(rotationMatrix, theta3, glm::vec3(0.0f, 0.0f, 1.0f));
 
-      const glm::vec3 dir = glm::normalize(vec3(vec4(triangleNormal, 1.0f) * rotationMatrix));
-      const float lightFactor = glm::dot(dir, triangleNormal);
+      const glm::vec3 indir_dir = vec3(vec4(triangleNormal, 1.0f) * rotationMatrix);
+      const float lightFactor = glm::dot(indir_dir, triangleNormal);
 
-	  if (lightFactor <= 0.0f)
-		  continue;
+  	  if (lightFactor <= 0.0f)
+  		  continue;
 
-      indirectLight += lightFactor * ShadePoint_Internal(intersection.position, dir, scene, curDepth - 1);
+      indirectLight += lightFactor * ShadePoint_Internal(intersection.position, indir_dir, scene, curDepth - 1);
     }
 
     light += (indirectLight / (float)NUM_DIRS);

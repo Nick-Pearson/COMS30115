@@ -18,13 +18,8 @@ Texture::~Texture()
 
 vec4 Texture::SampleTexture(vec2 UV) const
 {
-	UV.x -= (int)UV.x;
-	UV.y -= (int)UV.y;
-
-	if (UV.x < 0.0f) UV.x += 1.0f;
-	if (UV.y < 0.0f) UV.y += 1.0f;
-	if (UV.x >= 1.0f) UV.x -= 1.0f;
-	if (UV.y >= 1.0f) UV.y -= 1.0f;
+	UV.x -= floor(UV.x);
+	UV.y -= floor(UV.y);
 
 	int pixelX = (int)(UV.x * width);
 	int pixelY = (int)(UV.y * height);
