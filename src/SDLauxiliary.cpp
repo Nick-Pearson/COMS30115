@@ -127,15 +127,10 @@ bool NoQuitMessageSDL()
 
 void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour)
 {
-  if(x<0 || x>=s->width || y<0 || y>=s->height)
-    {
-      std::cout << "apa" << std::endl;
-      return;
-    }
-  uint32_t r = uint32_t( glm::clamp( 255*colour.r, 0.f, 255.f ) );
-  uint32_t g = uint32_t( glm::clamp( 255*colour.g, 0.f, 255.f ) );
-  uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
 
-  #pragma omp critical
+  uint32_t r = uint32_t( colour.r );
+  uint32_t g = uint32_t( colour.g );
+  uint32_t b = uint32_t( colour.b );
+
   s->buffer[y*s->width+x] = (255<<24) + (r<<16) + (g<<8) + b;
 }

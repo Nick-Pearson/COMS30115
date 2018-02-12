@@ -11,9 +11,9 @@ EXEC=$(B_DIR)/$(FILE)
 
 
 # default build settings
-CC_OPTS=-fopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3
-LN_OPTS=-fopenmp
-CC=g++
+CC_OPTS=-qopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3
+LN_OPTS=-qopenmp
+CC=icc
 OS = $(shell uname)
 
 #######
