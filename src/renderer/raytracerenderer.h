@@ -21,7 +21,7 @@ public:
 
 private:
 
-  vec3 ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth);
+  vec3 ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, Intersection& intersection);
 };
 
 #endif

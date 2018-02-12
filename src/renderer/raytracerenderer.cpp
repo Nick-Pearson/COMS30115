@@ -19,8 +19,8 @@
 //#define NUM_DIRS 0
 
 // takes around 4 mins for 720x720
-#define MAX_BOUNCES 2
-#define NUM_DIRS 16
+#define MAX_BOUNCES 0
+#define NUM_DIRS 128
 
 // takes around 10 secs for 720x720
 //#define MAX_BOUNCES 0
@@ -57,10 +57,10 @@ void RaytraceRenderer::Draw(const Scene* scene)
   }
 }
 
-vec3 RaytraceRenderer::DirectLight(const vec3& view, const Intersection& intersection, const Scene* scene)
+vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection& intersection, const Scene* scene)
 {
   vec3 lightPos( 0, -0.5, -0.7 );
-  vec3 lightColor = 400.f * vec3( 1, 1, 1 );
+  vec3 lightColor = 14.f * vec3( 1, 1, 1 );
 
   {
     Intersection shadowIntersection;
@@ -77,26 +77,22 @@ vec3 RaytraceRenderer::DirectLight(const vec3& view, const Intersection& interse
 
   float a = 4.0f * (float)M_PI * d_sqrd;
 
-  float brdf = Material::CalculateBRDF(view, rHat, intersection.mesh->Triangles[intersection.triangleIndex].normal);
-
-  if (brdf < 0)
-    return vec3(0,0,0);
-
+  glm::vec3 brdf = intersection.mesh->material->CalculateBRDF(src_position - intersection.position, rHat, intersection.mesh->Triangles[intersection.triangleIndex].normal, intersection.mesh->Triangles[intersection.triangleIndex].colour);
   return brdf * lightColor / a;
 }
 
 vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const Scene* scene)
 {
-  return ShadePoint_Internal(position, dir, scene, MAX_BOUNCES);
+  Intersection outIntersection;
+  return ShadePoint_Internal(position, dir, scene, MAX_BOUNCES, outIntersection);
 }
 
-vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth)
+vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, Intersection& intersection)
 {
-  Intersection intersection;
   if (!scene->ClosestIntersection(position, dir, intersection))
     return scene->GetEnvironmentColour(dir);
 
-  vec3 light = DirectLight(dir, intersection, scene);
+  vec3 light = DirectLight(position, intersection, scene);
 
   if(curDepth > 0)
   {
@@ -121,11 +117,22 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
   	  if (lightFactor <= 0.0f)
   		  continue;
 
-      indirectLight += lightFactor * ShadePoint_Internal(intersection.position, indir_dir, scene, curDepth - 1);
+	  Intersection indIntersection;
+	  vec3 indColour = ShadePoint_Internal(intersection.position, indir_dir, scene, curDepth - 1, indIntersection);
+	  float distanceFactor = 1.0f;
+	  float directionFactor = 1.0f;
+
+	  if(indIntersection.distance > 0.0f)
+		 distanceFactor = 10.0f / (indIntersection.distance * indIntersection.distance);
+
+	  if (indIntersection.mesh != nullptr)
+		 directionFactor = std::abs(glm::dot(indIntersection.mesh->Triangles[indIntersection.triangleIndex].normal, triangleNormal));
+
+	  indirectLight += lightFactor * directionFactor * indColour * distanceFactor;
     }
 
     light += (indirectLight / (float)NUM_DIRS);
   }
 
-  return light * intersection.mesh->Triangles[intersection.triangleIndex].colour;
+  return light;
 }

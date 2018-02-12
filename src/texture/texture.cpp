@@ -21,8 +21,8 @@ vec4 Texture::SampleTexture(vec2 UV) const
 	UV.x -= floor(UV.x);
 	UV.y -= floor(UV.y);
 
-	int pixelX = (int)(UV.x * width);
-	int pixelY = (int)(UV.y * height);
+	int pixelX = (int)(UV.x * width) % width;
+	int pixelY = (int)(UV.y * height) % height;
 
 	vec4 val(0.0f, 0.0f, 0.0f, 1.0f);
 
