@@ -17,13 +17,17 @@ void Update(float deltaMilliseconds);
 
 int main(int argc, char** argv)
 {
-
   Scene* scene = new Scene;
   scene->AddMesh(MeshFactory::GetCornelRoom());
   scene->AddMesh(MeshFactory::GetCube(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-0.4f, 0.4f, 0.3f), glm::vec3(0.5f, 1.2f, 0.5f)));
   scene->AddMesh(MeshFactory::GetCube(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.4f, 0.7f, -0.3f), glm::vec3(0.5f, 0.5f, 0.5f)));
 
+#if RAYTRACER
   Renderer* renderer = new RaytraceRenderer;
+#else
+  Renderer* renderer = new RasterizeRenderer;
+#endif
+
   renderer->Initialise(SCREEN_WIDTH, SCREEN_HEIGHT);
 
   std::vector<TestTriangle> mesh;

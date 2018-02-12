@@ -11,9 +11,9 @@ EXEC=$(B_DIR)/$(FILE)
 
 
 # default build settings
-CC_OPTS=-qopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3
-LN_OPTS=-qopenmp
-CC=icc
+CC_OPTS=-fopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3
+LN_OPTS=-fopenmp
+CC=g++
 OS = $(shell uname)
 
 #######
@@ -33,23 +33,27 @@ SDL_LDFLAGS := $(shell sdl2-config --libs)
 #######
 # File lists
 SRCS = $(shell find $(S_DIR) -name *.cpp)
-OBJS = $(SRCS:%.cpp=$(B_DIR)/%.o)
+RAY_OBJS = $(SRCS:%.cpp=$(B_DIR)/src_ray/%.o)
+RAS_OBJS = $(SRCS:%.cpp=$(B_DIR)/src_ras/%.o)
 
 ########
 #   Some phony targets as shortcuts
+DEFAULT = raytracer
+default: $(DEFAULT)
 all: raytracer rasterizer
-run: raytracer
-	./$(B_DIR)/raytracer
+run: $(DEFAULT)
+	./$(B_DIR)/$(DEFAULT)
 
 raytracer: $(B_DIR)/raytracer
 rasterizer: $(B_DIR)/rasterizer
 
 # linking code for both our executables
-$(B_DIR)/raytracer: $(OBJS) $(B_DIR)/$(R_DIR)
-	$(CC) $(LN_OPTS) $(OPENMP_LIB) -o $@ $(OBJS) $(SDL_LDFLAGS)
+$(B_DIR)/raytracer: $(RAY_OBJS) $(B_DIR)/$(R_DIR)
+	$(CC) $(LN_OPTS) $(OPENMP_LIB) -o $@ $(RAY_OBJS) $(SDL_LDFLAGS)
 
 # TODO: fill in when required
-$(B_DIR)/rasterizer: $(B_DIR)/$(R_DIR)
+$(B_DIR)/rasterizer: $(RAS_OBJS) $(B_DIR)/$(R_DIR)
+	$(CC) $(LN_OPTS) $(OPENMP_LIB) -o $@ $(RAS_OBJS) $(SDL_LDFLAGS)
 
 ## Resources
 $(B_DIR)/$(R_DIR):
@@ -58,9 +62,13 @@ $(B_DIR)/$(R_DIR):
 ########
 #   Code to compile each cpp file
 # $(B_DIR)/%.d
-$(B_DIR)/%.o : %.cpp
+$(B_DIR)/src_ray/%.o : %.cpp
 	mkdir -p $(dir $@)
-	$(CC) $(CC_OPTS) $(OPENMP_LIB) -o $@ $< $(SDL_CFLAGS) $(GLM_CFLAGS)
+	$(CC) $(CC_OPTS) $(OPENMP_LIB) -o $@ $< $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=1 -D RASTERIZER=0
+
+$(B_DIR)/src_ras/%.o : %.cpp
+	mkdir -p $(dir $@)
+	$(CC) $(CC_OPTS) $(OPENMP_LIB) -o $@ $< $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=0 -D RASTERIZER=1
 
 # compilation of the .d dependancy files so we dont have to worry about headers
 $(B_DIR)/%.d: %.cpp
