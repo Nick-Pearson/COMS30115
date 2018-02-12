@@ -18,19 +18,19 @@ vec3 TextureCubemap::GetCubemapColour(const vec3& direction) const
 	vec3 absoluteDirection = vec3(abs(direction.x), abs(direction.y), abs(direction.z));
 	vec2 UV(0.5f, 0.5f);
 
-	if (absoluteDirection.y >= absoluteDirection.x && absoluteDirection.y >= absoluteDirection.z)
+	if (absoluteDirection.y >= absoluteDirection.x && absoluteDirection.y >= absoluteDirection.z && absoluteDirection.y != 0.0f)
 	{
 		Dir = direction.y > 0.0f ? CubemapDirections::Bottom : CubemapDirections::Top;
 		UV.x = 0.5f * ((direction.x / absoluteDirection.y) + 1.0f);
 		UV.y = -0.5f * ((direction.z / direction.y) + 1.0f);
 	}
-	else if (absoluteDirection.x >= absoluteDirection.z && absoluteDirection.x >= absoluteDirection.y)
+	else if (absoluteDirection.x >= absoluteDirection.z && absoluteDirection.x >= absoluteDirection.y && absoluteDirection.x != 0.0f)
 	{
 		Dir = direction.x > 0.0f ? CubemapDirections::Front : CubemapDirections::Back;
 		UV.x = -0.5f * ((direction.z / direction.x) + 1.0f);
 		UV.y = 0.5f * ((direction.y / absoluteDirection.x) + 1.0f);
 	}
-	else if (absoluteDirection.z >= absoluteDirection.x && absoluteDirection.z >= absoluteDirection.y)
+	else if (absoluteDirection.z >= absoluteDirection.x && absoluteDirection.z >= absoluteDirection.y && absoluteDirection.z != 0.0f)
 	{
 		Dir = direction.z > 0.0f ? CubemapDirections::Right : CubemapDirections::Left;
 		UV.x = 0.5f * ((direction.x / direction.z) + 1.0f);

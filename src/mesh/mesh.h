@@ -2,10 +2,14 @@
 
 #include <glm/glm.hpp>
 
+#include <memory>
+
 #include "../structs/box.h"
 
 using namespace glm;
 using namespace std;
+
+class Material;
 
 // position and other metadata for a single vertex
 struct Vertex
@@ -51,6 +55,8 @@ public:
   vector<Triangle> Triangles;
 
   Box bounds;
+
+  std::shared_ptr<Material> material;
 
 private:
 	void CacheNormals();

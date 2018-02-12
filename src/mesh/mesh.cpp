@@ -1,10 +1,14 @@
 #include "mesh.h"
 
+#include "..\material\phongmaterial.h"
+
 Mesh::Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles) :
   Verticies(inVerticies), Triangles(inTriangles)
 {
 	CacheNormals();
 	CalculateBounds();
+
+	material = std::shared_ptr<Material>(new PhongMaterial);
 }
 
 void Mesh::CacheNormals()
