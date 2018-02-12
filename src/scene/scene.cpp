@@ -42,9 +42,9 @@ bool Scene::ShadowIntersection(const vec3& start, const vec3& dir, Intersection&
 
 vec3 Scene::GetEnvironmentColour(const vec3& dir) const
 {
-	if(environment)
+	if(false)
 		return environment->GetCubemapColour(dir);
-	
+
 	return vec3(0.0f, 0.0f, 0.0f);
 }
 
@@ -101,4 +101,3 @@ bool Scene::IntersectScene_Internal(const vec3& start, const vec3& dir, Func Pre
 
 	return outIntersection.triangleIndex != -1;
 }
-
