@@ -5,6 +5,7 @@
 #include "../mesh/mesh.h"
 #include "../texture/texture.h"
 #include "../material/material.h"
+#include "../amath.h"
 
 #include "antialiasing.h"
 
@@ -27,9 +28,6 @@
 // takes around 10 secs for 720x720
 //#define MAX_BOUNCES 0
 //#define NUM_DIRS 4
-
-
-#define TWO_PI 6.283185f
 
 using glm::vec4;
 using glm::mat4;
@@ -55,7 +53,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
       vec3 colour = ShadePoint(cameraPosition, vec3(dir), scene);
 
-      PutPixelBuffer(screenptr->screenBuffer, x, y, screenWidth, screenHeight, colour);
+      PutFloatPixelSDL(screenptr, x, y, colour);
     }
   }
 
@@ -63,26 +61,10 @@ void RaytraceRenderer::Draw(const Scene* scene)
   {
     for (int x = 0; x < screenWidth; x++)
     {
-      //vec3 colour = performAntiAliasing(screenptr->screenBuffer, x, y, screenWidth, screenHeight, screenptr->screenBuffer[y*screenptr->width+x]);
-      PutPixelSDL(screenptr, x, y, screenptr->screenBuffer[y*screenptr->width + x]);
+      vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
+      PutPixelSDL(screenptr, x, y, colour);
     }
   }
-
-}
-
-void RaytraceRenderer::PutPixelBuffer(vec3 *buffer, int x, int y, int width, int height, glm::vec3 colour)
-{
-  if(x<0 || x>=width || y<0 || y>=height)
-    {
-      std::cout << "apa" << std::endl;
-      return;
-    }
-  uint32_t r = uint32_t( glm::clamp( 255*colour.r, 0.f, 255.f ) );
-  uint32_t g = uint32_t( glm::clamp( 255*colour.g, 0.f, 255.f ) );
-  uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
-
-  #pragma omp critical
-  buffer[y*width+x] = vec3(r, g, b);
 }
 
 vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection& intersection, const Scene* scene)

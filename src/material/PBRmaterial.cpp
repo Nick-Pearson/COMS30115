@@ -1,13 +1,14 @@
 #include "PBRmaterial.h"
 
+#include "../amath.h"
+
 namespace
 {
   const float Roughness = 0.0f;
   const float BaseFresnel = 0.95f;
 };
 
-template<typename T>
-inline T square(T v) { return v*v; }
+using AMath::square;
 
 glm::vec3 PBRMaterial::CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& normal, const glm::vec3& albedo)
 {
@@ -21,7 +22,6 @@ glm::vec3 PBRMaterial::CalculateBRDF(const glm::vec3& view, const glm::vec3& lig
 
 float PBRMaterial::Distribution(const glm::vec3& h, const glm::vec3& normal)
 {
-  const float PI = 3.14159265f;
   const float alpha2 = square(square(Roughness));
   const float B = (square(glm::dot(normal, h)) * (alpha2 - 1.0f)) + 1.0f;
   return alpha2 / (PI * square(B));

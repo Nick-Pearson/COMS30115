@@ -8,7 +8,7 @@ void Renderer::Initialise(int ScreenWidth, int ScreenHeight)
 void Renderer::Clear()
 {
   memset(screenptr->buffer, 0, screenptr->height*screenptr->width*sizeof(uint32_t));
-  memset(screenptr->screenBuffer, 0, screenptr->height*screenptr->width * sizeof(glm::vec3));
+  memset(screenptr->floatBuffer, 0, screenptr->height*screenptr->width * sizeof(glm::vec3));
 }
 
 void Renderer::SwapBuffers()

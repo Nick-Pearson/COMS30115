@@ -6,6 +6,8 @@
 #include "SDLauxiliary.h"
 
 #include "renderer/raytracerenderer.h"
+#include "renderer/rasterizerenderer.h"
+
 #include "scene/scene.h"
 #include "mesh/meshfactory.h"
 

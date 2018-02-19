@@ -21,7 +21,6 @@ public:
 
 private:
   
-  void PutPixelBuffer(vec3 *buffer, int x, int y, int width, int height, glm::vec3 colour);
   vec3 ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, Intersection& intersection);
 };
 
