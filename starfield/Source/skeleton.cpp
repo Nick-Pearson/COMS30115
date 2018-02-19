@@ -125,20 +125,3 @@ void Update()
 
 
 }
-
-template<typename T>
-void Interpolate(T a, T b, std::vector<T>& result)
-{
-  if(result.size() == 1)
-  {
-    result[1] = (a + b) * 0.5f;
-    return;
-  }
-
-  int size = result.size();
-
-  for(int i = 0; i < size; ++i)
-  {
-    result[i] = a + ((b - a) * ((float)i / (float)(size-1)));
-  }
-}

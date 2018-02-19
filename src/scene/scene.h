@@ -35,6 +35,7 @@ public:
 	bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
 
 	void AddMesh(std::shared_ptr<Mesh> mesh) { Meshes.push_back(mesh); }
+	inline const std::vector<std::shared_ptr<Mesh>>* GetMeshes() const { return &Meshes; }
 
 	vec3 GetEnvironmentColour(const vec3& dir) const;
 

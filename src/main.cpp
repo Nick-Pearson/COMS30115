@@ -5,17 +5,14 @@
 #include <glm/glm.hpp>
 #include "SDLauxiliary.h"
 
-#if RAYTRACER
 #include "renderer/raytracerenderer.h"
-#else
 #include "renderer/rasterizerenderer.h"
-#endif
 
 #include "scene/scene.h"
 #include "mesh/meshfactory.h"
 
-#define SCREEN_WIDTH 720
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 200
+#define SCREEN_HEIGHT 200
 #define SINGLE_FRAME 0
 
 void Update(float deltaMilliseconds);

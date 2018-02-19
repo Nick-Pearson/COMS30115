@@ -5,6 +5,7 @@
 #include "../mesh/mesh.h"
 #include "../texture/texture.h"
 #include "../material/material.h"
+#include "../amath.h"
 
 #include "antialiasing.h"
 
@@ -27,9 +28,6 @@
 // takes around 10 secs for 720x720
 //#define MAX_BOUNCES 0
 //#define NUM_DIRS 4
-
-
-#define TWO_PI 6.283185f
 
 using glm::vec4;
 using glm::mat4;
