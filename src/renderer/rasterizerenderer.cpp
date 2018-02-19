@@ -63,10 +63,7 @@ void RasterizeRenderer::Draw(const Scene* scene)
         vec2 maxValue = b - a;
         int maxSize = std::max(std::abs(maxValue.x), std::abs(maxValue.y));
         std::vector<ivec2> results(maxSize);
-        AMath::interpolate(a, b, results);
-
-        //int minEdgeX = 0;
-        //int maxEdgeX = 999;
+        AMath::interpolateLine(a, b, results);
 
         for (int p = 0; p < results.size(); p++)
         {
@@ -75,9 +72,6 @@ void RasterizeRenderer::Draw(const Scene* scene)
           leftPixels[rowIdx] = std::min(leftPixels[rowIdx], results[p].x);
           rightPixels[rowIdx] = std::max(rightPixels[rowIdx], results[p].x);
         }
-
-        //leftPixels[j] = std::min(leftPixels[j], minEdgeX);
-        //rightPixels[j] = std::max(rightPixels[j], maxEdgeX);
       }
 
       for(int y = 0; y < ROWS; ++y)
