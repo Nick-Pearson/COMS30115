@@ -60,30 +60,17 @@ void RasterizeRenderer::Draw(const Scene* scene)
         ivec2 a = vertices[v];
         ivec2 b = vertices[(v+1) % 3];
 
-        if(a.y < minY || a.y > maxY || b.y < minY || b.y > maxY)
-        {
-          printf("ERROR\n");
-        }
-
         vec2 maxValue = b - a;
         int maxSize = std::max(std::abs(maxValue.x), std::abs(maxValue.y));
         std::vector<ivec2> results(maxSize);
-        AMath::interpolate(a, b, results);
-
-        //int minEdgeX = 0;
-        //int maxEdgeX = 999;
+        AMath::interpolateLine(a, b, results);
 
         for (int p = 0; p < results.size(); p++)
         {
           const int rowIdx = results[p].y - minY;
-          //printf("%i\n", rowIdx);
-          if(results[p].y < minY || results[p].y >= maxY) continue;
           leftPixels[rowIdx] = std::min(leftPixels[rowIdx], results[p].x);
           rightPixels[rowIdx] = std::max(rightPixels[rowIdx], results[p].x);
         }
-
-        //leftPixels[j] = std::min(leftPixels[j], minEdgeX);
-        //rightPixels[j] = std::max(rightPixels[j], maxEdgeX);
       }
 
       for(int y = 0; y < ROWS; ++y)
@@ -93,10 +80,6 @@ void RasterizeRenderer::Draw(const Scene* scene)
           PutPixelSDL(screenptr, x, y + minY, mesh->Triangles[i].colour);
         }
       }
-
-      /*DrawLine(projectedVerts[mesh->Triangles[i].v0], projectedVerts[mesh->Triangles[i].v1], colour);
-      DrawLine(projectedVerts[mesh->Triangles[i].v1], projectedVerts[mesh->Triangles[i].v2], colour);
-      DrawLine(projectedVerts[mesh->Triangles[i].v2], projectedVerts[mesh->Triangles[i].v0], colour);*/
     }
   }
 }
