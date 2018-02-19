@@ -62,6 +62,7 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
   s->width = width;
   s->height = height;
   s->buffer = new uint32_t[width*height];
+  s->screenBuffer = new glm::vec3[width*height];
   memset(s->buffer, 0, width*height*sizeof(uint32_t));
 
   uint32_t flags = SDL_WINDOW_OPENGL;

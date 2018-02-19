@@ -33,6 +33,7 @@ public:
 
 	bool ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection) const;
 	bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
+	bool Raymarch(const vec3& start, const vec3& dir, Intersection& closestGeometry) const;
 
 	void AddMesh(std::shared_ptr<Mesh> mesh) { Meshes.push_back(mesh); }
 

@@ -40,9 +40,14 @@ bool Scene::ShadowIntersection(const vec3& start, const vec3& dir, Intersection&
 	}, firstIntersection, true);
 }
 
+bool Scene::Raymarch(const vec3& start, const vec3& dir, Intersection& closestGeometry) const
+{
+	return false;
+}
+
 vec3 Scene::GetEnvironmentColour(const vec3& dir) const
 {
-	if(false)
+	if(environment)
 		return environment->GetCubemapColour(dir);
 
 	return vec3(0.0f, 0.0f, 0.0f);

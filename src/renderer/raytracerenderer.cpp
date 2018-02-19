@@ -44,8 +44,6 @@ void RaytraceRenderer::Draw(const Scene* scene)
   mat4 rotationMatrix = scene->camera->rotationMatrix;
   vec3 cameraPosition = scene->camera->position;
 
-  vec3 *screenBuffer = new vec3[screenWidth*screenHeight];
-
   float focalLength = screenWidth / (2.0f * tan(scene->camera->FOV / TWO_PI));
 
   #pragma omp parallel for schedule(static)
@@ -57,7 +55,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
       vec3 colour = ShadePoint(cameraPosition, vec3(dir), scene);
 
-      PutPixelBuffer(screenBuffer, x, y, screenWidth, screenHeight, colour);
+      PutPixelBuffer(screenptr->screenBuffer, x, y, screenWidth, screenHeight, colour);
     }
   }
 
@@ -65,8 +63,8 @@ void RaytraceRenderer::Draw(const Scene* scene)
   {
     for (int x = 0; x < screenWidth; x++)
     {
-      vec3 colour = performAntiAliasing(screenBuffer, x, y, screenWidth, screenHeight, screenBuffer[y*screenptr->width+x]);
-      PutPixelSDL(screenptr, x, y, colour);
+      //vec3 colour = performAntiAliasing(screenptr->screenBuffer, x, y, screenWidth, screenHeight, screenptr->screenBuffer[y*screenptr->width+x]);
+      PutPixelSDL(screenptr, x, y, screenptr->screenBuffer[y*screenptr->width + x]);
     }
   }
 

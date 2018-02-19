@@ -13,6 +13,7 @@ typedef struct{
   int height;
   int width;
   uint32_t *buffer;
+  glm::vec3* screenBuffer;
 } screen;
 
 screen* InitializeSDL( int width, int height, bool fullscreen = false );
