@@ -3,8 +3,6 @@
 
 #include <glm/glm.hpp>
 
-#include <algorithm>
-
 //set of additonal maths functions and defines
 #define PI 3.141593f
 #define TWO_PI 6.283185f

@@ -132,7 +132,7 @@ void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour)
 {
   if(x<0 || x>=s->width || y<0 || y>=s->height)
     {
-      std::cout << "apa" << std::endl;
+      //std::cout << "apa" << std::endl;
       return;
     }
   uint32_t r = uint32_t( colour.r );
@@ -146,7 +146,7 @@ void PutFloatPixelSDL(screen* s, int x, int y, glm::vec3 colour)
 {
   if(x<0 || x>=s->width || y<0 || y>=s->height)
     {
-      std::cout << "apa" << std::endl;
+      //std::cout << "apa" << std::endl;
       return;
     }
   uint32_t r = uint32_t( glm::clamp( 255*colour.r, 0.f, 255.f ) );

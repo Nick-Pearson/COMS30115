@@ -12,7 +12,7 @@
 
 void RasterizeRenderer::Draw(const Scene* scene)
 {
-  mat4 cameraMatrix = glm::translate(scene->camera->rotationMatrix, scene->camera->position);
+  mat4 cameraMatrix = glm::translate(scene->camera->rotationMatrix, -scene->camera->position);
 
   float focalLength = screenptr->width / (2.0f * tan(scene->camera->FOV / TWO_PI));
 
@@ -43,7 +43,7 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
       int minY = std::min(std::min(v0.y, v1.y), v2.y);
       int maxY = std::max(std::max(v0.y, v1.y), v2.y);
-      const int ROWS = maxY - minY;
+      const int ROWS = (maxY+1) - minY;
 
       if(ROWS <= 0) continue;
 
@@ -52,18 +52,13 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
       for(int j = 0; j < ROWS; ++j)
       {
-        leftPixels[j] = std::numeric_limits<int>::max();
-        rightPixels[j] = -std::numeric_limits<int>::max();
+        leftPixels[j] = screenptr->width;
+        rightPixels[j] = -screenptr->width;
       }
 
       for (int v = 0; v < 3; ++v) {
         ivec2 a = vertices[v];
         ivec2 b = vertices[(v+1) % 3];
-
-        if(a.y < minY || a.y > maxY || b.y < minY || b.y > maxY)
-        {
-          printf("ERROR\n");
-        }
 
         vec2 maxValue = b - a;
         int maxSize = std::max(std::abs(maxValue.x), std::abs(maxValue.y));
@@ -75,9 +70,8 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
         for (int p = 0; p < results.size(); p++)
         {
-          const int rowIdx = results[p].y - minY;
-          //printf("%i\n", rowIdx);
-          if(results[p].y < minY || results[p].y >= maxY) continue;
+          const int rowIdx = std::max(std::min(results[p].y - minY, ROWS-1), 0);
+
           leftPixels[rowIdx] = std::min(leftPixels[rowIdx], results[p].x);
           rightPixels[rowIdx] = std::max(rightPixels[rowIdx], results[p].x);
         }
@@ -88,15 +82,16 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
       for(int y = 0; y < ROWS; ++y)
       {
+        if(y + minY < 0 || y + minY >= screenptr->height) continue;
         for(int x = leftPixels[y]; x < rightPixels[y]; ++x)
         {
-          PutPixelSDL(screenptr, x, y + minY, mesh->Triangles[i].colour);
+          PutPixelSDL(screenptr, x, y + minY, mesh->Triangles[i].colour * 255.0f);
         }
       }
 
-      /*DrawLine(projectedVerts[mesh->Triangles[i].v0], projectedVerts[mesh->Triangles[i].v1], colour);
-      DrawLine(projectedVerts[mesh->Triangles[i].v1], projectedVerts[mesh->Triangles[i].v2], colour);
-      DrawLine(projectedVerts[mesh->Triangles[i].v2], projectedVerts[mesh->Triangles[i].v0], colour);*/
+      /*DrawLine(v0, v1, colour);
+      DrawLine(v1, v2, colour);
+      DrawLine(v2, v0, colour);*/
     }
   }
 }
