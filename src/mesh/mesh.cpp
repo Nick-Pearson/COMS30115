@@ -1,6 +1,6 @@
 #include "mesh.h"
 
-#include "..\material\phongmaterial.h"
+#include "../material/phongmaterial.h"
 
 Mesh::Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles) :
   Verticies(inVerticies), Triangles(inTriangles)

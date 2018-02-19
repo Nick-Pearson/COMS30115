@@ -38,7 +38,7 @@ RAS_OBJS = $(SRCS:%.cpp=$(B_DIR)/src_ras/%.o)
 
 ########
 #   Some phony targets as shortcuts
-DEFAULT = raytracer
+DEFAULT = rasterizer
 default: $(DEFAULT)
 all: raytracer rasterizer
 run: $(DEFAULT)
@@ -51,7 +51,6 @@ rasterizer: $(B_DIR)/rasterizer
 $(B_DIR)/raytracer: $(RAY_OBJS) $(B_DIR)/$(R_DIR)
 	$(CC) $(LN_OPTS) $(OPENMP_LIB) -o $@ $(RAY_OBJS) $(SDL_LDFLAGS)
 
-# TODO: fill in when required
 $(B_DIR)/rasterizer: $(RAS_OBJS) $(B_DIR)/$(R_DIR)
 	$(CC) $(LN_OPTS) $(OPENMP_LIB) -o $@ $(RAS_OBJS) $(SDL_LDFLAGS)
 
@@ -79,4 +78,8 @@ $(B_DIR)/%.d: %.cpp
 clean:
 	rm -rf $(B_DIR)
 
-# -include $(SRCS:%.cpp=$(B_DIR)/%.d)
+-include $(SRCS:%.cpp=$(B_DIR)/%.d)
+
+# it is possible that the .d files will fail to exclude library files so I have definined empty rules for them
+glm/%.hpp:
+stb_image.h:

@@ -44,8 +44,6 @@ void RaytraceRenderer::Draw(const Scene* scene)
   mat4 rotationMatrix = scene->camera->rotationMatrix;
   vec3 cameraPosition = scene->camera->position;
 
-  vec3 *screenBuffer = new vec3[screenWidth*screenHeight];
-
   float focalLength = screenWidth / (2.0f * tan(scene->camera->FOV / TWO_PI));
 
   #pragma omp parallel for schedule(static)
@@ -57,7 +55,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
       vec3 colour = ShadePoint(cameraPosition, vec3(dir), scene);
 
-      PutPixelBuffer(screenBuffer, x, y, screenWidth, screenHeight, colour);
+      PutFloatPixelSDL(screenptr, x, y, colour);
     }
   }
 
@@ -65,26 +63,10 @@ void RaytraceRenderer::Draw(const Scene* scene)
   {
     for (int x = 0; x < screenWidth; x++)
     {
-      vec3 colour = performAntiAliasing(screenBuffer, x, y, screenWidth, screenHeight, screenBuffer[y*screenptr->width+x]);
+      vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
       PutPixelSDL(screenptr, x, y, colour);
     }
   }
-
-}
-
-void RaytraceRenderer::PutPixelBuffer(vec3 *buffer, int x, int y, int width, int height, glm::vec3 colour)
-{
-  if(x<0 || x>=width || y<0 || y>=height)
-    {
-      std::cout << "apa" << std::endl;
-      return;
-    }
-  uint32_t r = uint32_t( glm::clamp( 255*colour.r, 0.f, 255.f ) );
-  uint32_t g = uint32_t( glm::clamp( 255*colour.g, 0.f, 255.f ) );
-  uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
-
-  #pragma omp critical
-  buffer[y*width+x] = vec3(r, g, b);
 }
 
 vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection& intersection, const Scene* scene)

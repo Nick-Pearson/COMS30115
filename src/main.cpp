@@ -5,7 +5,12 @@
 #include <glm/glm.hpp>
 #include "SDLauxiliary.h"
 
+#if RAYTRACER
 #include "renderer/raytracerenderer.h"
+#else
+#include "renderer/rasterizerenderer.h"
+#endif
+
 #include "scene/scene.h"
 #include "mesh/meshfactory.h"
 
