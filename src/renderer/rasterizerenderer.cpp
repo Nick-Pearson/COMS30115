@@ -4,8 +4,10 @@
 #include "../scene/scene.h"
 #include "../scene/camera.h"
 #include "../amath.h"
+#include "../light/light.h"
+#include "../material/material.h"
+#include "antialiasing.h"
 
-#include <memory>
 #include <vector>
 
 #include <glm/gtx/transform.hpp>
@@ -88,10 +90,21 @@ void RasterizeRenderer::Draw(const Scene* scene)
             continue;
 
           PutDepthSDL(screenptr, x, y, depth);
-			    PutPixelSDL(screenptr, x, y, Tri.colour * 255.0f);
+
+          Vertex Vert = (mesh->Verticies[Tri.v0] * w0) + (mesh->Verticies[Tri.v1] * w1) + (mesh->Verticies[Tri.v2] * w2);
+			    PutFloatPixelSDL(screenptr, x, y, PixelShader(scene, mesh->material, Tri, Vert));
           //PutPixelSDL(screenptr, x, y, glm::vec3(100.0f, 100.0f, 100.0f) * clamp(depth, 0.0f, 2.55f));
 		    }
 	    }
+    }
+  }
+
+  for (int y = 0; y < screenptr->height; y++)
+  {
+    for (int x = 0; x < screenptr->width; x++)
+    {
+      vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenptr->width, screenptr->height, screenptr->floatBuffer[y*screenptr->width + x]);
+      PutPixelSDL(screenptr, x, y, screenptr->floatBuffer[y*screenptr->width + x]);
     }
   }
 }
@@ -104,6 +117,20 @@ float RasterizeRenderer::VertexShader(const glm::mat4& view, float focalLength, 
   outProjPos.x = (int)(focalLength * transformedV.x / transformedV.z) + (screenptr->width * 0.5f);
   outProjPos.y = (int)(focalLength * transformedV.y / transformedV.z) + (screenptr->height * 0.5f);
   return transformedV.z;
+}
+
+glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Material> material, const Triangle& Tri, const Vertex& Vertex) const
+{
+  const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
+  glm::vec3 colour(0.0f, 0.0f, 0.0f);
+
+  for (const std::shared_ptr<Light> light : *Lights)
+  {
+    glm::vec3 brdf = material->CalculateBRDF(scene->camera->position - Vertex.position, glm::normalize(light->GetLightDirection(Vertex.position)), Tri.normal, Tri.colour);
+    colour += brdf * light->CalculateLightAtLocation(Vertex.position);
+  }
+
+  return colour;
 }
 
 void RasterizeRenderer::DrawLine(const glm::ivec2& a, const glm::ivec2& b, const glm::vec3 colour)

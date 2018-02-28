@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <random>
+#include <memory>
 
 #include <glm/glm.hpp>
 #include "SDLauxiliary.h"
@@ -10,6 +11,7 @@
 
 #include "scene/scene.h"
 #include "mesh/meshfactory.h"
+#include "light/pointlight.h"
 
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 720
@@ -23,6 +25,7 @@ int main(int argc, char** argv)
   scene->AddMesh(MeshFactory::GetCornelRoom());
   scene->AddMesh(MeshFactory::GetCube(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-0.4f, 0.4f, 0.3f), glm::vec3(0.5f, 1.2f, 0.5f)));
   scene->AddMesh(MeshFactory::GetCube(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.4f, 0.7f, -0.3f), glm::vec3(0.5f, 0.5f, 0.5f)));
+  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 14.0f, true, glm::vec3(0, -0.5, -0.7))));
 
 #if RAYTRACER
   Renderer* renderer = new RaytraceRenderer;

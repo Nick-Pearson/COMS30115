@@ -27,6 +27,32 @@ struct Vertex
 
   vec3   position = vec3(0.0f, 0.0f, 0.0f);
   vec2   uv0      = vec2(0.0f, 0.0f);
+
+  void operator*=(float factor)
+  {
+    position *= factor;
+    uv0 *= factor;
+  }
+
+  Vertex operator*(float factor) const
+  {
+    Vertex returnValue = *this;
+    returnValue *= factor;
+    return returnValue;
+  }
+
+  void operator+=(const Vertex& other)
+  {
+    position += other.position;
+    uv0 += other.uv0;
+  }
+
+  Vertex operator+(const Vertex& other)
+  {
+    Vertex returnValue = *this;
+    returnValue += other;
+    return returnValue;
+  }
 };
 
 // the vertex indicies and colour value of a triangle

@@ -6,6 +6,7 @@
 #include "../texture/texture.h"
 #include "../material/material.h"
 #include "../amath.h"
+#include "../light/light.h"
 
 #include "antialiasing.h"
 
@@ -69,26 +70,27 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
 vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection& intersection, const Scene* scene)
 {
-  vec3 lightPos( 0, -0.5, -0.7 );
-  vec3 lightColor = 14.f * vec3( 1, 1, 1 );
+  const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
+  glm::vec3 colour(0.0f, 0.0f, 0.0f);
 
+  for (const std::shared_ptr<Light> light : *Lights)
   {
-    Intersection shadowIntersection;
-    vec3 shadowDir = lightPos - vec3(intersection.position);
-    if(scene->ShadowIntersection(intersection.position, shadowDir, shadowIntersection))
+    vec3 lightDir = light->GetLightDirection(vec3(intersection.position));
+
+    if(light->CastsShadows())
     {
-      return vec3(0, 0, 0);
+      Intersection shadowIntersection;
+      if (scene->ShadowIntersection(intersection.position, lightDir, shadowIntersection))
+      {
+        continue;
+      }
     }
+
+    glm::vec3 brdf = intersection.mesh->material->CalculateBRDF(src_position - intersection.position, glm::normalize(li), intersection.mesh->Triangles[intersection.triangleIndex].normal, intersection.mesh->Triangles[intersection.triangleIndex].colour);
+    colour += brdf * light->CalculateLightAtLocation(intersection.position);
   }
 
-  vec3 rHat = lightPos - vec3(intersection.position);
-  float d_sqrd = glm::length2(rHat);
-  rHat = glm::normalize(rHat);
-
-  float a = 4.0f * (float)M_PI * d_sqrd;
-
-  glm::vec3 brdf = intersection.mesh->material->CalculateBRDF(src_position - intersection.position, rHat, intersection.mesh->Triangles[intersection.triangleIndex].normal, intersection.mesh->Triangles[intersection.triangleIndex].colour);
-  return brdf * lightColor / a;
+  return colour;
 }
 
 vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const Scene* scene)

@@ -9,6 +9,7 @@
 class Mesh;
 class Camera;
 class Cubemap;
+class Light;
 
 using glm::mat4;
 using glm::vec3;
@@ -38,6 +39,9 @@ public:
 	void AddMesh(std::shared_ptr<Mesh> mesh) { Meshes.push_back(mesh); }
 	inline const std::vector<std::shared_ptr<Mesh>>* GetMeshes() const { return &Meshes; }
 
+  void AddLight(std::shared_ptr<Light> light) { Lights.push_back(light); }
+  inline const std::vector<std::shared_ptr<Light>>* GetLights() const { return &Lights; }
+
 	vec3 GetEnvironmentColour(const vec3& dir) const;
 
 	Camera* camera;
@@ -47,6 +51,7 @@ public:
 private:
 
 	std::vector<std::shared_ptr<Mesh>> Meshes;
+  std::vector<std::shared_ptr<Light>> Lights;
 
 	// querys the scene for intersections, will return if the predicate function returns true
 	template<typename Func>
