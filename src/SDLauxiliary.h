@@ -14,12 +14,15 @@ typedef struct{
   int width;
   uint32_t *buffer;
   glm::vec3* floatBuffer;
+  float* depthBuffer;
 } screen;
 
 screen* InitializeSDL( int width, int height, bool fullscreen = false );
 bool NoQuitMessageSDL();
 void PutPixelSDL( screen *s, int x, int y, glm::vec3 color );
 void PutFloatPixelSDL(screen* s, int x, int y, glm::vec3 colour);
+void PutDepthSDL(screen* s, int x, int y, float depth);
+inline float GetDepthSDL(const screen* s, int x, int y) { return s->depthBuffer[y*s->width + x]; }
 void SDL_Renderframe(screen *s);
 void KillSDL(screen* s);
 void SDL_SaveImage(screen *s, const char* filename);

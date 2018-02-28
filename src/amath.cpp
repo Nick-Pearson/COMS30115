@@ -31,15 +31,3 @@ void AMath::interpolateLine(const glm::ivec2& a, const glm::ivec2& b, std::vecto
 		i++;
 	}
 }
-
-bool AMath::IsPointWithinTriangle(const glm::ivec2& p, const glm::ivec2& v0, const glm::ivec2& v1, const glm::ivec2& v2)
-{
-	auto& edgeFunction = [](const glm::ivec2& a, const glm::ivec2& b, const glm::ivec2& c)
-	{
-		return ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x) >= 0);
-	};
-
-	return edgeFunction(v0, v1, p) &&
-	  edgeFunction(v1, v2, p) &&
-	  edgeFunction(v2, v0, p);
-}

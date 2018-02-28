@@ -35,6 +35,8 @@ void SDL_SaveImage(screen *s, const char* filename)
 void KillSDL(screen* s)
 {
   delete[] s->buffer;
+  delete[] s->floatBuffer;
+  delete[] s->depthBuffer;
   SDL_DestroyTexture(s->texture);
   SDL_DestroyRenderer(s->renderer);
   SDL_DestroyWindow(s->window);
@@ -105,6 +107,9 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
   s->floatBuffer = new glm::vec3[width*height];
   memset(s->floatBuffer, 0, width*height*sizeof(glm::vec3));
 
+  s->depthBuffer = new float[width * height];
+
+
   return s;
 }
 
@@ -132,13 +137,13 @@ void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour)
 {
   if(x<0 || x>=s->width || y<0 || y>=s->height)
     {
-      //std::cout << "apa" << std::endl;
       return;
     }
   uint32_t r = uint32_t( colour.r );
   uint32_t g = uint32_t( colour.g );
   uint32_t b = uint32_t( colour.b );
 
+  #pragma omp critical
   s->buffer[y*s->width+x] = (255<<24) + (r<<16) + (g<<8) + b;
 }
 
@@ -146,7 +151,6 @@ void PutFloatPixelSDL(screen* s, int x, int y, glm::vec3 colour)
 {
   if(x<0 || x>=s->width || y<0 || y>=s->height)
     {
-      //std::cout << "apa" << std::endl;
       return;
     }
   uint32_t r = uint32_t( glm::clamp( 255*colour.r, 0.f, 255.f ) );
@@ -155,4 +159,15 @@ void PutFloatPixelSDL(screen* s, int x, int y, glm::vec3 colour)
 
   #pragma omp critical
   s->floatBuffer[y*s->width+x] = glm::vec3(r, g, b);
+}
+
+void PutDepthSDL(screen* s, int x, int y, float depth)
+{
+	if (x<0 || x >= s->width || y<0 || y >= s->height)
+	{
+		return;
+	}
+
+  #pragma omp critical
+  s->depthBuffer[y*s->width + x] = depth;
 }

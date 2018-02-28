@@ -13,9 +13,13 @@ namespace AMath
 {
   template<typename T>
   inline T square(T v) { return v*v; }
-/*
+
+  inline glm::vec2 cross2D(const glm::vec2& a, const glm::vec2& b) { return glm::vec2(glm::cross(glm::vec3(a, 1.0f), glm::vec3(b, 1.0f))); }
+
+  // Interpolation
+
   template<typename T>
-  inline void interpolate(T a, T b, std::vector<T>& result)
+  inline void interpolate(const T& a, const T& b, std::vector<T>& result)
   {
     if(result.size() == 1)
     {
@@ -29,19 +33,26 @@ namespace AMath
     {
       result[i] = a + ((b - a) * ((float)i / (float)(size-1)));
     }
-  }*/
-
+  }
+  
+  template<>
   inline void interpolate(const glm::ivec2& a, const glm::ivec2& b, std::vector<glm::ivec2>& result)
   {
     int size = result.size();
-    glm::vec2 step = glm::vec2(b-a) / float(std::max(size-1, 1));
+    glm::vec2 step = glm::vec2(b - a) / float(std::max(size - 1, 1));
     glm::vec2 current(a);
 
-    for(int i = 0; i < size; ++i)
+    for (int i = 0; i < size; ++i)
     {
       result[i] = current;
       current += step;
     }
+  }
+
+  template<typename T>
+  inline T interpolate(const T& a, const T& b, float alpha)
+  {
+    return a + (b-a)*alpha;
   }
 
   template <typename T> 
@@ -51,7 +62,12 @@ namespace AMath
 
   void interpolateLine(const glm::ivec2& a, const glm::ivec2& b, std::vector<glm::ivec2>& result);
 
-  bool IsPointWithinTriangle(const glm::ivec2& p, const glm::ivec2& v0, const glm::ivec2& v1, const glm::ivec2& v2);
+  // finds the intersection of two lines, returns a distance along the first line
+  inline float findLineIntersection(const glm::vec2& p0, const glm::vec2& d0, const glm::vec2& p1, const glm::vec2& d1) 
+  {
+    const glm::vec2 p = p1 - p0;
+    return ((p.x*d1.y) - (p.y*d1.x)) / ((d0.x*d1.y) - (d0.y*d1.x));
+  }
 };
 
 #endif
