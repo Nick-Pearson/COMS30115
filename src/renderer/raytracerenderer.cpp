@@ -86,7 +86,7 @@ vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection&
       }
     }
 
-    glm::vec3 brdf = intersection.mesh->material->CalculateBRDF(src_position - intersection.position, glm::normalize(li), intersection.mesh->Triangles[intersection.triangleIndex].normal, intersection.mesh->Triangles[intersection.triangleIndex].colour);
+    glm::vec3 brdf = intersection.mesh->material->CalculateBRDF(src_position - intersection.position, glm::normalize(lightDir), intersection.mesh->Triangles[intersection.triangleIndex].normal, intersection.mesh->Triangles[intersection.triangleIndex].colour);
     colour += brdf * light->CalculateLightAtLocation(intersection.position);
   }
 
