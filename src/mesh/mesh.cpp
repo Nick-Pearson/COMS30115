@@ -8,6 +8,16 @@ Mesh::Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangle
 	CacheNormals();
 	CalculateBounds();
 
+  /*for (Triangle& tri : Triangles)
+  {
+    int vals[3] = { tri.v0, tri.v1, tri.v2 };
+    for(int i = 0; i < 3; ++i)
+    {
+      if(vals[i] < 0 || vals[i] )
+    }
+    printf("Invalid Mesh\n", );
+  }
+*/
 	material = std::shared_ptr<Material>(new PhongMaterial);
 }
 
