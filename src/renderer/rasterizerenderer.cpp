@@ -31,7 +31,6 @@ void RasterizeRenderer::Draw(const Scene* scene)
 	  };
     std::vector<ProjectedVert> projectedVerts(V);
 
-    #pragma omp parallel for
     for(int i = 0; i < V; ++i)
     {
 	    projectedVerts[i].invdepth = 1.0f / VertexShader(cameraMatrix, focalLength, glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
