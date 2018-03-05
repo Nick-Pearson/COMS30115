@@ -8,9 +8,9 @@ using namespace std;
 const float EDGE_THRESHOLD_MIN = 0.0312;
 const float EDGE_THRESHOLD_MAX = 0.125;
 
-vec3 performAntiAliasing(vec3 *screen, int x, int y, int width, int height, vec3 colour)
+vec3 performAntiAliasing(vec4 *screen, int x, int y, int width, int height, vec4 colour)
 {
-  vec3 colorCenter = colour;
+  vec3 colorCenter = vec3(colour);
 
   // Luma at the current fragment
   float lumaCenter = rgb2luma(colorCenter);
@@ -43,7 +43,7 @@ vec3 performAntiAliasing(vec3 *screen, int x, int y, int width, int height, vec3
   return vec3(255, 255, 255);
 }
 
-vec3 colourAtPosition(vec3* screen, int x, int y, int width, int height, ivec2 pos) {
+vec3 colourAtPosition(vec4* screen, int x, int y, int width, int height, ivec2 pos) {
   int newY = y + pos[1];
 
   if (newY < 0) {
@@ -60,7 +60,7 @@ vec3 colourAtPosition(vec3* screen, int x, int y, int width, int height, ivec2 p
     newX = newX % width;
   }
 
-  return screen[newY * width + newX];
+  return vec3(screen[newY * width + newX]);
 }
 
 float rgb2luma(const vec3& rgb) {

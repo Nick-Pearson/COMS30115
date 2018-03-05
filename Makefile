@@ -11,8 +11,8 @@ EXEC=$(B_DIR)/$(FILE)
 
 
 # default build settings
-CC_OPTS=-qopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3
-LN_OPTS=-qopenmp
+CC_OPTS=-qopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3 -g
+LN_OPTS=-qopenmp -g
 CC=icc
 OS = $(shell uname)
 
@@ -70,7 +70,12 @@ $(B_DIR)/src_ras/%.o : %.cpp
 	$(CC) $(CC_OPTS) $(OPENMP_LIB) -o $@ $< $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=0 -D RASTERIZER=1
 
 # compilation of the .d dependancy files so we dont have to worry about headers
-$(B_DIR)/%.d: %.cpp
+$(B_DIR)/src_ray/%.d: %.cpp
+	mkdir -p $(dir $@)
+	printf $(dir $@) > $@
+	$(CC) $(CC_OPTS) $(OPENMP_LIB) -MM -MG $*.cpp >> $@
+
+$(B_DIR)/src_ras/%.d: %.cpp
 	mkdir -p $(dir $@)
 	printf $(dir $@) > $@
 	$(CC) $(CC_OPTS) $(OPENMP_LIB) -MM -MG $*.cpp >> $@
@@ -78,7 +83,10 @@ $(B_DIR)/%.d: %.cpp
 clean:
 	rm -rf $(B_DIR)
 
--include $(SRCS:%.cpp=$(B_DIR)/%.d)
+ifneq ($(MAKECMDGOALS), clean)
+-include $(SRCS:%.cpp=$(B_DIR)/src_ray/%.d)
+-include $(SRCS:%.cpp=$(B_DIR)/src_ras/%.d)
+endif
 
 # it is possible that the .d files will fail to exclude library files so I have definined empty rules for them
 glm/%.hpp:

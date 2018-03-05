@@ -31,7 +31,7 @@ void RasterizeRenderer::Draw(const Scene* scene)
 	  };
     std::vector<ProjectedVert> projectedVerts(V);
 
-    #pragma omp parallel for 
+    #pragma omp parallel for
     for(int i = 0; i < V; ++i)
     {
 	    projectedVerts[i].invdepth = 1.0f / VertexShader(cameraMatrix, focalLength, glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
@@ -104,7 +104,7 @@ void RasterizeRenderer::Draw(const Scene* scene)
     for (int x = 0; x < screenptr->width; x++)
     {
       vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenptr->width, screenptr->height, screenptr->floatBuffer[y*screenptr->width + x]);
-      PutPixelSDL(screenptr, x, y, screenptr->floatBuffer[y*screenptr->width + x]);
+      PutPixelSDL(screenptr, x, y, colour);
     }
   }
 }

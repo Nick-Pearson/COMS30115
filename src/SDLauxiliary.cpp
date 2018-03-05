@@ -36,7 +36,6 @@ void KillSDL(screen* s)
 {
   delete[] s->buffer;
   delete[] s->floatBuffer;
-  delete[] s->depthBuffer;
   SDL_DestroyTexture(s->texture);
   SDL_DestroyRenderer(s->renderer);
   SDL_DestroyWindow(s->window);
@@ -104,11 +103,8 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
       exit(1);
     }
 
-  s->floatBuffer = new glm::vec3[width*height];
-  memset(s->floatBuffer, 0, width*height*sizeof(glm::vec3));
-
-  s->depthBuffer = new float[width * height];
-
+  s->floatBuffer = new glm::vec4[width*height];
+  memset(s->floatBuffer, 0, width*height*sizeof(glm::vec4));
 
   return s;
 }
@@ -158,7 +154,11 @@ void PutFloatPixelSDL(screen* s, int x, int y, glm::vec3 colour)
   uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
 
   #pragma omp critical
-  s->floatBuffer[y*s->width+x] = glm::vec3(r, g, b);
+  {
+    s->floatBuffer[y*s->width+x].x = r;
+    s->floatBuffer[y*s->width+x].y = g;
+    s->floatBuffer[y*s->width+x].z = b;
+  }
 }
 
 void PutDepthSDL(screen* s, int x, int y, float depth)
@@ -169,5 +169,5 @@ void PutDepthSDL(screen* s, int x, int y, float depth)
 	}
 
   #pragma omp critical
-  s->depthBuffer[y*s->width + x] = depth;
+  s->floatBuffer[y*s->width + x].w = depth;
 }
