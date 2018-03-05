@@ -36,10 +36,10 @@ public:
 	bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
 	bool Raymarch(const vec3& start, const vec3& dir, Intersection& closestGeometry) const;
 
-	void AddMesh(std::shared_ptr<Mesh> mesh) { Meshes.push_back(mesh); }
+	void AddMesh(std::shared_ptr<Mesh> mesh) { if(mesh) Meshes.push_back(mesh); }
 	inline const std::vector<std::shared_ptr<Mesh>>* GetMeshes() const { return &Meshes; }
 
-  void AddLight(std::shared_ptr<Light> light) { Lights.push_back(light); }
+  void AddLight(std::shared_ptr<Light> light) { if(light) Lights.push_back(light); }
   inline const std::vector<std::shared_ptr<Light>>* GetLights() const { return &Lights; }
 
 	vec3 GetEnvironmentColour(const vec3& dir) const;

@@ -2,6 +2,107 @@
 
 #include "mesh.h"
 
+#include <iostream>
+#include <fstream>
+
+//private functions for loading files
+shared_ptr<Mesh> LoadOBJFile(std::string path);
+
+shared_ptr<Mesh> MeshFactory::LoadFromFile(const std::string& filepath)
+{
+  MeshType type = MeshType::UNKOWN;
+
+  size_t file_extension_idx = filepath.find_last_of('.');
+  if(file_extension_idx == std::string::npos)
+  {
+    std::cout << "Unable to parse file extension from filename" << std::endl;
+    return nullptr;
+  }
+
+  std::string file_extension = filepath.substr(file_extension_idx);
+
+  const std::string fullpath = "./resources/meshes/" + filepath;
+
+  if(file_extension == ".obj")
+    type = MeshType::OBJ;
+
+  shared_ptr<Mesh> meshptr;
+
+  switch (type) {
+    case MeshType::OBJ:
+      meshptr = LoadOBJFile(fullpath);
+      break;
+
+    default:
+      std::cout << "Unsupported file type '" << file_extension << "'" << std::endl;
+      break;
+  }
+
+  return meshptr;
+}
+
+shared_ptr<Mesh> LoadOBJFile(std::string path)
+{
+  ifstream ifs (path.c_str());
+
+  if(!ifs.good())
+  {
+    std::cout << "Unable to open file '" << path << "'" << std::endl;
+    return nullptr;
+  }
+
+  //read the file line by line
+  std::string line;
+  line.reserve(512);
+  line.clear();
+
+  vector<Vertex> verts;
+  vector<Triangle> triangles;
+
+  while(std::getline(ifs, line))
+  {
+    if(line.size() == 0)
+      continue;
+
+    char type = line[0];
+
+    std::string data = line.size() > 1 ? line.substr(1) : "";
+    line.erase(line.begin(), std::find_if(line.begin(), line.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+
+    if(type == '#')
+    {
+      continue;
+    }
+    else if(type == 'v')
+    {
+      float x,y,z;
+      if(3 != sscanf(data.c_str(), "%f %f %f", &x, &y, &z))
+      {
+        std::cout << "Corrupt OBJ file vertex '" << data << "'" << std::endl;
+        return nullptr;
+      }
+
+      verts.push_back(Vertex((glm::vec3(x,y,z) * 0.01f) - glm::vec3(-2.0f,0.0f,2.0f), glm::vec2(0.0f, 0.0f)));
+    }
+    else if(type == 'f')
+    {
+      int v0,v1,v2;
+      if(3 != sscanf(data.c_str(), "%d %d %d", &v0, &v1, &v2))
+      {
+        std::cout << "Corrupt OBJ file face '" << data << "'" << std::endl;
+        return nullptr;
+      }
+
+      triangles.push_back(Triangle(v0, v1, v2, glm::vec3(1.0f, 1.0f, 1.0f)));
+    }
+
+    line.clear();
+  }
+
+  return shared_ptr<Mesh>(new Mesh(verts, triangles));
+}
+
 namespace
 {
   void AddQuad(int v1, int v2, int v3, int v4, const vec3& colour, vector<Triangle>& triangles)

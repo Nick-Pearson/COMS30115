@@ -70,7 +70,13 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
     {
       flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
     }
-  s->window = SDL_CreateWindow("COMS30115",
+
+#if RAYTRACER
+  const char* WindowName = "COMS30115 - Raytracer";
+#else
+  const char* WindowName = "COMS30115 - Rasterizer";
+#endif
+  s->window = SDL_CreateWindow(WindowName,
 				      SDL_WINDOWPOS_UNDEFINED,
 				      SDL_WINDOWPOS_UNDEFINED,
 				      width, height,flags);

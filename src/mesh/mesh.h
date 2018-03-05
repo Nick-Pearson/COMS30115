@@ -65,8 +65,7 @@ public:
 
 	Triangle(int v0, int v1, int v2, glm::vec3 colour)
 		: v0(v0), v1(v1), v2(v2), colour(colour), normal(glm::vec3())
-	{
-	}
+	{}
 };
 
 class Mesh
