@@ -3,6 +3,7 @@
 #include "mesh.h"
 
 #include <iostream>
+#include<cctype>
 #include <fstream>
 
 //private functions for loading files
@@ -57,6 +58,7 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
   line.clear();
 
   vector<Vertex> verts;
+  vector<glm::vec3> vertnormals;
   vector<Triangle> triangles;
 
   while(std::getline(ifs, line))
@@ -67,8 +69,9 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
     char type = line[0];
 
     std::string data = line.size() > 1 ? line.substr(1) : "";
-    line.erase(line.begin(), std::find_if(line.begin(), line.end(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](char c) {
+      return std::isspace(static_cast<unsigned char>(c));
+    }));
 
     if(type == '#')
     {
@@ -76,28 +79,39 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
     }
     else if(type == 'v')
     {
-      if(data[0] == 'n')
+      if(data.size() != 0 && data[0] == 'n')
       {
-        // TODO: Implement vertex normals
-        continue;
-      }
+        float x, y, z;
+        if (3 != sscanf_s(data.c_str() + 2, "%f %f %f", &x, &y, &z))
+        {
+          std::cout << "Corrupt OBJ file vertex normal '" << data << "'" << std::endl;
+          return nullptr;
+        }
 
-      float x,y,z;
-      if(3 != sscanf(data.c_str(), "%f %f %f", &x, &y, &z))
+        vertnormals.push_back(glm::vec3(x, y, z));
+      }
+      else
       {
-        std::cout << "Corrupt OBJ file vertex '" << data << "'" << std::endl;
-        return nullptr;
-      }
+        float x, y, z;
+        if (3 != sscanf_s(data.c_str(), "%f %f %f", &x, &y, &z))
+        {
+          std::cout << "Corrupt OBJ file vertex '" << data << "'" << std::endl;
+          return nullptr;
+        }
 
-      verts.push_back(Vertex(glm::vec3(x,-y,z) * 0.1f, glm::vec2(0.0f, 0.0f)));
+        verts.push_back(Vertex(glm::vec3(x,y,z), glm::vec2(0.0f, 0.0f)));
+      }
     }
     else if(type == 'f')
     {
-      int v0,v1,v2,dummy;
-      if(3 != sscanf(data.c_str(), "%d %d %d", &v0, &v1, &v2) &&
-          6 != sscanf(data.c_str(), "%d/%d %d/%d %d/%d", &v0, &dummy, &v1, &dummy, &v2, &dummy) &&
-          6 != sscanf(data.c_str(), "%d//%d %d//%d %d//%d", &v0, &dummy, &v1, &dummy, &v2, &dummy) &&
-          9 != sscanf(data.c_str(), "%d/%d/%d %d/%d/%d %d/%d/%d", &v0, &dummy, &dummy, &v1, &dummy, &dummy, &v2, &dummy, &dummy))
+      int v0, v1, v2; // vertex indices
+      int uv0 = -1, uv1 = -1, uv2 = -1; // texture coordinate indices
+      int vn0 = -1, vn1 = -1, vn2 = -1; // vertex normal indices
+
+      if(3 != sscanf_s(data.c_str(), "%d %d %d", &v0, &v1, &v2) &&
+          6 != sscanf_s(data.c_str(), "%d/%d %d/%d %d/%d", &v0, &uv0, &v1, &uv1, &v2, &uv2) &&
+          6 != sscanf_s(data.c_str(), "%d//%d %d//%d %d//%d", &v0, &vn0, &v1, &vn1, &v2, &vn2) &&
+          9 != sscanf_s(data.c_str(), "%d/%d/%d %d/%d/%d %d/%d/%d", &v0, &uv0, &vn0, &v1, &uv1, &vn1, &v2, &uv2, &vn2))
       {
         std::cout << "Corrupt OBJ file face '" << data << "'" << std::endl;
         return nullptr;
@@ -107,7 +121,20 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
       if(v1 < 0) v1 = verts.size() + v1 + 1;
       if(v2 < 0) v2 = verts.size() + v2 + 1;
 
-      triangles.push_back(Triangle(v0 - 1, v1 - 1, v2 - 1, glm::vec3(1.0f, 1.0f, 1.0f)));
+      Triangle Tri = Triangle(v0 - 1, v1 - 1, v2 - 1, glm::vec3(1.0f, 1.0f, 1.0f));
+      
+      /*
+      // if we have vertex normals, use those otherwise calculate normals in the usual way
+      if (vn0 != -1 && vn1 != -1 && vn2 != -1)
+      {
+        Tri.normal = glm::normalize((vertnormals[vn0 - 1] + vertnormals[vn1 - 1] + vertnormals[vn2 - 1]));
+      }
+      else
+      {
+        Tri.CalculateNormal(verts[Tri.v0].position, verts[Tri.v1].position, verts[Tri.v2].position);
+      }*/
+
+      triangles.push_back(Tri);
     }
 
     line.clear();

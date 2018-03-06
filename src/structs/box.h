@@ -32,6 +32,8 @@ struct Box
 
 	bool DoesIntersect(const glm::vec3& start, glm::vec3 dir) const;
 
+  glm::vec3 GetCenter() const { return 0.5f * (min + max); }
+
 	glm::vec3 min;
 	glm::vec3 max;
 

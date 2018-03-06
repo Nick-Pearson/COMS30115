@@ -66,15 +66,39 @@ public:
 	Triangle(int v0, int v1, int v2, glm::vec3 colour)
 		: v0(v0), v1(v1), v2(v2), colour(colour), normal(glm::vec3())
 	{}
+
+  inline void CalculateNormal(const glm::vec3& v0Pos, const glm::vec3& v1Pos, const glm::vec3& v2Pos)
+  {
+    const vec3 e1 = v1Pos - v0Pos;
+    const vec3 e2 = v2Pos - v0Pos;
+    normal = glm::normalize(glm::cross(e2, e1));
+  }
 };
 
 class Mesh
 {
 public:
+  // bitmask flags of what operations to skip when constructing a mesh
+  enum MeshConstructType
+  {
+    DEFAULT = 0,
+    SKIP_CACHE_NORMALS = 1,
+    SKIP_CALC_BOUNDS = 2,
+  };
+
   // constructor that takes a set of verticies and triangles to copy (any invalid triangles will be dropped)
-  Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles);
+  Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles, MeshConstructType ConstructType = MeshConstructType::DEFAULT);
 
   virtual ~Mesh() {}
+
+  void Translate(const glm::vec3& translation);
+
+  void Rotate(const glm::vec3& eulerAngles);
+
+  void Scale(const float scaleFactor) { return Scale(glm::vec3(scaleFactor, scaleFactor, scaleFactor)); }
+  void Scale(const glm::vec3& scaleFactor);
+
+  void FlipNormals();
 
   vector<Vertex> Verticies;
   vector<Triangle> Triangles;

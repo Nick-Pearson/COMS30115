@@ -16,6 +16,14 @@ namespace AMath
 
   inline glm::vec2 cross2D(const glm::vec2& a, const glm::vec2& b) { return glm::vec2(glm::cross(glm::vec3(a, 1.0f), glm::vec3(b, 1.0f))); }
 
+  // Angles
+
+  // converts and angle in degrees to radians
+  inline float ToRads(float angle) { return angle * PI / 180.0f; }
+
+  // converts and angle in radians to degrees
+  inline float ToDegs(float angle) { return angle * 180.0f / PI; }
+
   // Interpolation
 
   template<typename T>
