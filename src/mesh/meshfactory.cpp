@@ -1,7 +1,7 @@
 #include "meshfactory.h"
 
 #include "mesh.h"
-#include "..\material\phongmaterial.h"
+#include "../material/phongmaterial.h"
 
 #include <iostream>
 #include<cctype>
@@ -68,9 +68,12 @@ void LoadMTLLib(std::string path, std::vector<std::shared_ptr<Material>>& outMat
   while (std::getline(ifs, line))
   {
     std::string data = line.size() > 1 ? line.substr(1) : "";
-    data.erase(data.begin(), std::find_if(data.begin(), data.end(), [](char c) {
-      return std::isspace(static_cast<unsigned char>(c));
-    }) + 1);
+    auto firstSpaceIt = std::find_if(data.begin(), data.end(), [](char c) {
+        return std::isspace(static_cast<unsigned char>(c));
+      });
+
+    if(firstSpaceIt != data.end())
+      data.erase(data.begin(), firstSpaceIt + 1);
 
     if (line.substr(0, 6).compare("newmtl") == 0)
     {
@@ -96,6 +99,8 @@ void LoadMTLLib(std::string path, std::vector<std::shared_ptr<Material>>& outMat
       if (3 == SSCANF(data.c_str(), "%f %f %f", &r, &g, &b))
         curMaterial->specular = glm::vec3(r, g, b);
     }
+
+    line.clear();
   }
 }
 
@@ -131,9 +136,12 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
     char type = line[0];
 
     std::string data = line.size() > 1 ? line.substr(1) : "";
-    data.erase(data.begin(), std::find_if(data.begin(), data.end(), [](char c) {
-      return std::isspace(static_cast<unsigned char>(c));
-    }) + 1);
+    auto firstSpaceIt = std::find_if(data.begin(), data.end(), [](char c) {
+        return std::isspace(static_cast<unsigned char>(c));
+      });
+
+    if(firstSpaceIt != data.end())
+      data.erase(data.begin(), firstSpaceIt + 1);
 
     if(type == '#')
     {

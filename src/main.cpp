@@ -23,6 +23,7 @@ void Update(float deltaMilliseconds);
 int main(int argc, char** argv)
 {
   Scene* scene = new Scene;
+  
   scene->AddMesh(MeshFactory::LoadFromFile("cornel.obj"));
 
   std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
@@ -30,7 +31,7 @@ int main(int argc, char** argv)
   Bunny->Translate(glm::vec3(0.4f, 0.1f, -0.3f));
   Bunny->Rotate(glm::vec3(0.0f, 180.0f, 180.0f));
   scene->AddMesh(Bunny);
-  
+
   scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 14.0f, true, glm::vec3(0, -0.5, -0.7))));
 
 #if RAYTRACER

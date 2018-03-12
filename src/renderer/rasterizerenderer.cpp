@@ -67,24 +67,48 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
       const float area = edgeFunction(glm::vec2(v1), glm::vec2(v0), glm::vec2(v2));
 
-      #pragma omp parallel for
+      if(AMath::isNearlyZero(area))
+        continue;
+
 	    for (int y = triMin.y; y <= triMax.y; ++y)
 	    {
+        const glm::vec2 p(triMin.x-1.0f, y);
+
+        // from : https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-practical-implementation
+        // the step of w is constant over the x loop so it only needs to be evaluated once at the start of the loop
+        float w0_cur = edgeFunction(glm::vec2(v2), glm::vec2(v1), p);
+        const float w0_step = v1.y-v2.y;
+
+        float w1_cur = edgeFunction(glm::vec2(v0), glm::vec2(v2), p);
+        const float w1_step = v2.y-v0.y;
+
+        float w2_cur = edgeFunction(glm::vec2(v1), glm::vec2(v0), p);
+        const float w2_step = v0.y-v1.y;
+
+        bool wasValid = false;
+
 		    for (int x = triMin.x; x <= triMax.x; ++x)
 		    {
-          const glm::vec2 p(x, y);
-
-          float w1 = edgeFunction(glm::vec2(v0), glm::vec2(v2), p);
-          float w0 = edgeFunction(glm::vec2(v2), glm::vec2(v1), p);
-          float w2 = edgeFunction(glm::vec2(v1), glm::vec2(v0), p);
+          // increment our W values
+          w0_cur += w0_step;
+          w1_cur += w1_step;
+          w2_cur += w2_step;
 
           //check if this point is within the triangle
-          if(w0 < 0.0f || w1 < 0.0f || w2 < 0.0f)
-            continue;
+          if(w0_cur < 0.0f || w1_cur < 0.0f || w2_cur < 0.0f)
+          {
+            // if we have already drawn the triangle on this line then it is impossible for us to draw it again, so break in that case
+            if(!wasValid)
+              continue;
+            else
+              break;
+          }
 
-          w0 /= area;
-          w1 /= area;
-          w2 /= area;
+          wasValid = true;
+
+          const float w0 = w0_cur / area;
+          const float w1 = w1_cur / area;
+          const float w2 = w2_cur / area;
 
           const float depth = (projectedVerts[Tri.v0].invdepth * w0) + (projectedVerts[Tri.v1].invdepth * w1) + (projectedVerts[Tri.v2].invdepth * w2);
 
@@ -96,7 +120,7 @@ void RasterizeRenderer::Draw(const Scene* scene)
             Vert *= 1.0f / depth;
 
             PutFloatPixelSDL(screenptr, x, y, PixelShader(scene, mesh->GetMaterial(i), Tri, Vert));
-            //PutFloatPixelSDL(screenptr, x, y, glm::vec3(3.0f, 3.0f, 3.0f) * clamp(depth, 0.0f, 2.55f));
+            //PutFloatPixelSDL(screenptr, x, y, glm::vec3(1.0f, 1.0f, 1.0f) * clamp(depth, 0.0f, 2.55f));
           }
 		    }
 	    }
@@ -119,8 +143,9 @@ float RasterizeRenderer::VertexShader(const glm::mat4& view, float focalLength, 
 {
   glm::vec4 transformedV = view * v;
 
-  outProjPos.x = (int)(focalLength * transformedV.x / std::abs(transformedV.z)) + (screenptr->width * 0.5f);
-  outProjPos.y = (int)(focalLength * transformedV.y / std::abs(transformedV.z)) + (screenptr->height * 0.5f);
+  const float Z = std::abs(transformedV.z);
+  outProjPos.x = (int)(focalLength * transformedV.x / Z) + (screenptr->width * 0.5f);
+  outProjPos.y = (int)(focalLength * transformedV.y / Z) + (screenptr->height * 0.5f);
   return transformedV.z;
 }
 
