@@ -10,13 +10,13 @@ namespace
 
 using AMath::square;
 
-glm::vec3 PBRMaterial::CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& normal, const glm::vec3& albedo)
+glm::vec3 PBRMaterial::CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& normal)
 {
   const glm::vec3 view_norm = glm::normalize(view);
   const glm::vec3 h = (view_norm + light) / 2.0f;
   const float A = Distribution(h, normal) * Fresnel(view_norm, h, normal) * Geometry(light, view_norm, normal);
   const float B = 4.0f * glm::dot(normal, light) * glm::dot(normal, view_norm);
-  return A * albedo;
+  return A * glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
 

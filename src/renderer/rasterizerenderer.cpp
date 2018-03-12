@@ -16,6 +16,8 @@ void RasterizeRenderer::Draw(const Scene* scene)
 {
   mat4 cameraMatrix = glm::translate(glm::transpose(scene->camera->rotationMatrix), -scene->camera->position);
   float focalLength = screenptr->width / (2.0f * tan(scene->camera->FOV / TWO_PI));
+  const float near = scene->camera->nearClipPlane;
+  const float far = scene->camera->farClipPlane;
 
   const std::vector<std::shared_ptr<Mesh>>* Meshes = scene->GetMeshes();
 
@@ -33,7 +35,8 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
     for(int i = 0; i < V; ++i)
     {
-	    projectedVerts[i].invdepth = 1.0f / VertexShader(cameraMatrix, focalLength, glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
+      const float depth = VertexShader(cameraMatrix, focalLength, glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
+	    projectedVerts[i].invdepth = 1.0f / depth;
     }
 
     for(int i = 0; i < T; ++i)
@@ -41,9 +44,9 @@ void RasterizeRenderer::Draw(const Scene* scene)
       const Triangle& Tri = mesh->Triangles[i];
 
       // if the entire triangle is behind the camera we can skip it
-      if(projectedVerts[Tri.v0].invdepth < 0.0f &&
-        projectedVerts[Tri.v1].invdepth < 0.0f &&
-        projectedVerts[Tri.v2].invdepth < 0.0f)
+      if(projectedVerts[Tri.v0].invdepth <= 0.0f &&
+        projectedVerts[Tri.v1].invdepth <= 0.0f &&
+        projectedVerts[Tri.v2].invdepth <= 0.0f)
         continue;
 
       const glm::ivec2& v0 = projectedVerts[Tri.v0].position;
@@ -85,14 +88,16 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
           const float depth = (projectedVerts[Tri.v0].invdepth * w0) + (projectedVerts[Tri.v1].invdepth * w1) + (projectedVerts[Tri.v2].invdepth * w2);
 
-          if(GetDepthSDL(screenptr, x, y) > depth)
-            continue;
+          if (GetDepthSDL(screenptr, x, y) < depth)
+          {
+            PutDepthSDL(screenptr, x, y, depth);
 
-          PutDepthSDL(screenptr, x, y, depth);
+            Vertex Vert = (mesh->Verticies[Tri.v0] * w0 * projectedVerts[Tri.v0].invdepth) + (mesh->Verticies[Tri.v1] * w1 * projectedVerts[Tri.v1].invdepth) + (mesh->Verticies[Tri.v2] * w2 * projectedVerts[Tri.v2].invdepth);
+            Vert *= 1.0f / depth;
 
-          Vertex Vert = (mesh->Verticies[Tri.v0] * w0) + (mesh->Verticies[Tri.v1] * w1) + (mesh->Verticies[Tri.v2] * w2);
-			    PutFloatPixelSDL(screenptr, x, y, PixelShader(scene, mesh->material, Tri, Vert));
-          //PutPixelSDL(screenptr, x, y, glm::vec3(100.0f, 100.0f, 100.0f) * clamp(depth, 0.0f, 2.55f));
+            PutFloatPixelSDL(screenptr, x, y, PixelShader(scene, mesh->GetMaterial(i), Tri, Vert));
+            //PutFloatPixelSDL(screenptr, x, y, glm::vec3(3.0f, 3.0f, 3.0f) * clamp(depth, 0.0f, 2.55f));
+          }
 		    }
 	    }
     }
@@ -114,8 +119,8 @@ float RasterizeRenderer::VertexShader(const glm::mat4& view, float focalLength, 
 {
   glm::vec4 transformedV = view * v;
 
-  outProjPos.x = (int)(focalLength * transformedV.x / transformedV.z) + (screenptr->width * 0.5f);
-  outProjPos.y = (int)(focalLength * transformedV.y / transformedV.z) + (screenptr->height * 0.5f);
+  outProjPos.x = (int)(focalLength * transformedV.x / std::abs(transformedV.z)) + (screenptr->width * 0.5f);
+  outProjPos.y = (int)(focalLength * transformedV.y / std::abs(transformedV.z)) + (screenptr->height * 0.5f);
   return transformedV.z;
 }
 
@@ -126,7 +131,7 @@ glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Mat
 
   for (const std::shared_ptr<Light> light : *Lights)
   {
-    glm::vec3 brdf = material->CalculateBRDF(scene->camera->position - Vertex.position, glm::normalize(light->GetLightDirection(Vertex.position)), Tri.normal, Tri.colour);
+    glm::vec3 brdf = material->CalculateBRDF(scene->camera->position - Vertex.position, glm::normalize(light->GetLightDirection(Vertex.position)), Tri.normal);
     colour += brdf * light->CalculateLightAtLocation(Vertex.position);
   }
 

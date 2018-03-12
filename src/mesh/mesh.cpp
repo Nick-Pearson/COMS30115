@@ -5,16 +5,13 @@
 
 #include <glm/gtx/transform.hpp>
 
-Mesh::Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles, MeshConstructType ConstructType) :
+Mesh::Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles) :
   Verticies(inVerticies), Triangles(inTriangles)
 {
-  if(!(ConstructType & MeshConstructType::SKIP_CACHE_NORMALS))
-	  CacheNormals();
+	CacheNormals();
+  CalculateBounds();
 
-  if (!(ConstructType & MeshConstructType::SKIP_CALC_BOUNDS))
-    CalculateBounds();
-
-	material = std::shared_ptr<Material>(new PhongMaterial);
+	SetMaterial(std::shared_ptr<Material>(new PhongMaterial(glm::vec3(0.75f, 0.75f, 0.75f))));
 }
 
 void Mesh::Translate(const glm::vec3& translation)
@@ -41,6 +38,7 @@ void Mesh::Rotate(const glm::vec3& eulerAngles)
     v.position = glm::vec3(rotationMatrix * glm::vec4(v.position - center, 1.0f)) + center;
   }
 
+  CacheNormals();
   CalculateBounds();
 }
 
@@ -64,6 +62,30 @@ void Mesh::FlipNormals()
   }
 
   CacheNormals();
+}
+
+std::shared_ptr<Material> Mesh::GetMaterial(int32 triangleIndex) const
+{
+  if (materials.size() == 0) return nullptr;
+  else if (materials.size() == 1) return materials[0];
+  else return materials[materialIndicies[triangleIndex]];
+}
+
+void Mesh::SetMaterial(std::shared_ptr<Material> Material)
+{
+  materials.empty();
+  materialIndicies.empty();
+
+  materials.push_back(Material);
+}
+
+void Mesh::SetMaterials(const std::vector<std::shared_ptr<Material>>& Materials, const std::vector<uint8_t>& MaterialIndicies)
+{
+  if (Materials.size() == 0) return;
+  else if (Materials.size() == 1) return SetMaterial(Materials[0]);
+
+  materials = Materials;
+  materialIndicies = MaterialIndicies;
 }
 
 void Mesh::CacheNormals()

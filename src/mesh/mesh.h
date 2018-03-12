@@ -78,16 +78,9 @@ public:
 class Mesh
 {
 public:
-  // bitmask flags of what operations to skip when constructing a mesh
-  enum MeshConstructType
-  {
-    DEFAULT = 0,
-    SKIP_CACHE_NORMALS = 1,
-    SKIP_CALC_BOUNDS = 2,
-  };
 
   // constructor that takes a set of verticies and triangles to copy (any invalid triangles will be dropped)
-  Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles, MeshConstructType ConstructType = MeshConstructType::DEFAULT);
+  Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles);
 
   virtual ~Mesh() {}
 
@@ -105,9 +98,16 @@ public:
 
   Box bounds;
 
-  std::shared_ptr<Material> material;
+  std::shared_ptr<Material> GetMaterial(int32 triangleIndex) const;
+
+  void SetMaterial(std::shared_ptr<Material> Material);
+  void SetMaterials(const std::vector<std::shared_ptr<Material>>& Materials, const std::vector<uint8_t>& MaterialIndicies);
 
 private:
+
+  std::vector<std::shared_ptr<Material>> materials;
+  std::vector<uint8_t> materialIndicies;
+
 	void CacheNormals();
 	void CalculateBounds();
 };

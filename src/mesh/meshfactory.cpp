@@ -1,6 +1,7 @@
 #include "meshfactory.h"
 
 #include "mesh.h"
+#include "..\material\phongmaterial.h"
 
 #include <iostream>
 #include<cctype>
@@ -49,6 +50,55 @@ shared_ptr<Mesh> MeshFactory::LoadFromFile(const std::string& filepath)
   return meshptr;
 }
 
+void LoadMTLLib(std::string path, std::vector<std::shared_ptr<Material>>& outMaterials, std::vector<std::string>& outMaterialNames)
+{
+  ifstream ifs(path.c_str());
+
+  if (!ifs.good())
+  {
+    std::cout << "Unable to open mtl library '" << path << "'" << std::endl;
+    return;
+  }
+
+  std::string line;
+  line.clear();
+
+  std::shared_ptr<PhongMaterial> curMaterial;
+
+  while (std::getline(ifs, line))
+  {
+    std::string data = line.size() > 1 ? line.substr(1) : "";
+    data.erase(data.begin(), std::find_if(data.begin(), data.end(), [](char c) {
+      return std::isspace(static_cast<unsigned char>(c));
+    }) + 1);
+
+    if (line.substr(0, 6).compare("newmtl") == 0)
+    {
+      curMaterial = std::shared_ptr<PhongMaterial>(new PhongMaterial(glm::vec3(0.75f, 0.75f, 0.75f)));
+      outMaterials.push_back(curMaterial);
+      outMaterialNames.push_back(data);
+    }
+    else if (line.substr(0, 2).compare("Ns") == 0)
+    {
+      float val;
+      if (3 == SSCANF(data.c_str(), "%f", &val))
+        curMaterial->specularExponent = val;
+    }
+    else if (line.substr(0, 2).compare("Kd") == 0)
+    {
+      float r,g,b;
+      if (3 == SSCANF(data.c_str(), "%f %f %f", &r, &g, &b))
+        curMaterial->diffuse = glm::vec3(r,g,b);
+    }
+    else if (line.substr(0, 2).compare("Ks") == 0)
+    {
+      float r, g, b;
+      if (3 == SSCANF(data.c_str(), "%f %f %f", &r, &g, &b))
+        curMaterial->specular = glm::vec3(r, g, b);
+    }
+  }
+}
+
 shared_ptr<Mesh> LoadOBJFile(std::string path)
 {
   ifstream ifs (path.c_str());
@@ -61,12 +111,17 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
 
   //read the file line by line
   std::string line;
-  line.reserve(512);
   line.clear();
 
   vector<Vertex> verts;
   vector<glm::vec3> vertnormals;
   vector<Triangle> triangles;
+
+  std::vector<std::shared_ptr<Material>> materials;
+  std::vector<std::string> materialNames;
+
+  uint8_t curMaterialIndex = 0;
+  std::vector<uint8_t> materialIndicies;
 
   while(std::getline(ifs, line))
   {
@@ -76,9 +131,9 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
     char type = line[0];
 
     std::string data = line.size() > 1 ? line.substr(1) : "";
-    line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](char c) {
+    data.erase(data.begin(), std::find_if(data.begin(), data.end(), [](char c) {
       return std::isspace(static_cast<unsigned char>(c));
-    }));
+    }) + 1);
 
     if(type == '#')
     {
@@ -128,26 +183,34 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
       if(v1 < 0) v1 = verts.size() + v1 + 1;
       if(v2 < 0) v2 = verts.size() + v2 + 1;
 
-      Triangle Tri = Triangle(v0 - 1, v1 - 1, v2 - 1, glm::vec3(1.0f, 1.0f, 1.0f));
+      triangles.push_back(Triangle(v1 - 1, v0 - 1, v2 - 1, glm::vec3(1.0f, 1.0f, 1.0f)));
+      materialIndicies.push_back(curMaterialIndex);
+    }
+    else if (line.substr(0, 6).compare("mtllib") == 0)
+    {
+      LoadMTLLib("./resources/meshes/" + data, materials, materialNames);
+    }
+    else if (line.substr(0, 6).compare("usemtl") == 0)
+    {
+      auto it = std::find_if(materialNames.begin(), materialNames.end(), [&](std::string name) {
+        return name.compare(data) == 0;
+      });
 
-      /*
-      // if we have vertex normals, use those otherwise calculate normals in the usual way
-      if (vn0 != -1 && vn1 != -1 && vn2 != -1)
+      if (it == materialNames.end())
       {
-        Tri.normal = glm::normalize((vertnormals[vn0 - 1] + vertnormals[vn1 - 1] + vertnormals[vn2 - 1]));
+        std::cout << "Attempted to use missing material" << std::endl;
+        curMaterialIndex = 0;
       }
-      else
-      {
-        Tri.CalculateNormal(verts[Tri.v0].position, verts[Tri.v1].position, verts[Tri.v2].position);
-      }*/
 
-      triangles.push_back(Tri);
+      curMaterialIndex = it - materialNames.begin();
     }
 
     line.clear();
   }
 
-  return shared_ptr<Mesh>(new Mesh(verts, triangles));
+  shared_ptr<Mesh> meshptr =  shared_ptr<Mesh>(new Mesh(verts, triangles));
+  meshptr->SetMaterials(materials, materialIndicies);
+  return meshptr;
 }
 
 namespace

@@ -169,11 +169,6 @@ void PutFloatPixelSDL(screen* s, int x, int y, glm::vec3 colour)
 
 void PutDepthSDL(screen* s, int x, int y, float depth)
 {
-	if (x<0 || x >= s->width || y<0 || y >= s->height)
-	{
-		return;
-	}
-
   #pragma omp critical
   s->floatBuffer[y*s->width + x].w = depth;
 }

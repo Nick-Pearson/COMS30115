@@ -14,7 +14,7 @@
 #include "light/pointlight.h"
 #include "mesh/mesh.h"
 
-#define SCREEN_WIDTH 1280
+#define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 720
 #define SINGLE_FRAME 0
 
@@ -23,17 +23,14 @@ void Update(float deltaMilliseconds);
 int main(int argc, char** argv)
 {
   Scene* scene = new Scene;
-  scene->AddMesh(MeshFactory::GetCornelRoom());
-  scene->AddMesh(MeshFactory::GetCube(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(-0.4f, 0.4f, 0.3f), glm::vec3(0.5f, 1.2f, 0.5f)));
-  scene->AddMesh(MeshFactory::GetCube(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.4f, 0.7f, -0.3f), glm::vec3(0.5f, 0.5f, 0.5f)));
+  scene->AddMesh(MeshFactory::LoadFromFile("cornel.obj"));
 
   std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
   Bunny->Scale(2.5f);
-  Bunny->Translate(glm::vec3(0.5f, 0.15f, -0.3f));
+  Bunny->Translate(glm::vec3(0.4f, 0.1f, -0.3f));
   Bunny->Rotate(glm::vec3(0.0f, 180.0f, 180.0f));
-  Bunny->FlipNormals();
   scene->AddMesh(Bunny);
-
+  
   scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 14.0f, true, glm::vec3(0, -0.5, -0.7))));
 
 #if RAYTRACER
