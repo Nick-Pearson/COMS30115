@@ -14,9 +14,16 @@ public:
 
   glm::vec3 CalculateLightAtLocation(const glm::vec3& location) const override;
 
+protected:
+
+  void InitialiseShadowMap() override;
+
+  void ProjectPointToShadowMap(const glm::vec4& point, glm::ivec2& outProjectedPoint) const override;
+
 private:
 
   glm::vec3 m_Location;
+
 };
 
 #endif

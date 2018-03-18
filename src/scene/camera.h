@@ -15,8 +15,5 @@ public:
   float FOV;
   glm::vec3 position;
   glm::mat4 rotationMatrix = glm::mat4();
-
-  float nearClipPlane = 0.1f;
-  float farClipPlane = 500.0f;
 };
 #endif

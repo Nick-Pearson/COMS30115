@@ -1,56 +1,46 @@
 #include "SDLauxiliary.h"
 #include <omp.h>
 
-void SDL_SaveImage(screen *s, const char* filename)
+void Screen::PutPixel(int x, int y, const glm::vec3& colour)
 {
-  uint32_t rmask, gmask, bmask, amask;
+  if (x<0 || x >= width || y<0 || y >= height)
+  {
+    return;
+  }
+  uint32_t r = uint32_t(colour.r);
+  uint32_t g = uint32_t(colour.g);
+  uint32_t b = uint32_t(colour.b);
 
-  if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
-    {
-      amask = 0xff << 0;
-      rmask = 0xff << 8;
-      gmask = 0xff << 16;
-      bmask = 0xff << 24;
-    }
-  else
-    {
-      amask = 0xff << 24;
-      rmask = 0xff << 16;
-      gmask = 0xff << 8;
-      bmask = 0xff << 0;
-    }
-
-  SDL_Surface* surf = SDL_CreateRGBSurfaceFrom((void*)s->buffer, s->width, s->height,
-					       32, s->width*sizeof(uint32_t),
-					       rmask,gmask,bmask,amask);
-  if(SDL_SaveBMP(surf, filename) !=0)
-    {
-      std::cout << "Failed to save image: "
-		<< SDL_GetError() << std::endl;
-      exit(1);
-    }
-
+#pragma omp critical
+  buffer[y*width + x] = (255 << 24) + (r << 16) + (g << 8) + b;
 }
 
-void KillSDL(screen* s)
+void Screen::PutFloatPixel(int x, int y, const glm::vec3& colour)
 {
-  delete[] s->buffer;
-  delete[] s->floatBuffer;
-  SDL_DestroyTexture(s->texture);
-  SDL_DestroyRenderer(s->renderer);
-  SDL_DestroyWindow(s->window);
-  SDL_Quit();
+  if (x<0 || x >= width || y<0 || y >= height)
+  {
+    return;
+  }
+  uint32_t r = uint32_t(glm::clamp(255 * colour.r, 0.f, 255.f));
+  uint32_t g = uint32_t(glm::clamp(255 * colour.g, 0.f, 255.f));
+  uint32_t b = uint32_t(glm::clamp(255 * colour.b, 0.f, 255.f));
+
+#pragma omp critical
+  {
+    floatBuffer[y*width + x].x = r;
+    floatBuffer[y*width + x].y = g;
+    floatBuffer[y*width + x].z = b;
+  }
 }
 
-void SDL_Renderframe(screen* s)
+void Screen::PutDepth(int x, int y, float depth)
 {
-  SDL_UpdateTexture(s->texture, NULL, s->buffer, s->width*sizeof(uint32_t));
-  SDL_RenderClear(s->renderer);
-  SDL_RenderCopy(s->renderer, s->texture, NULL, NULL);
-  SDL_RenderPresent(s->renderer);
+#pragma omp critical
+  floatBuffer[y*width + x].w = depth;
 }
 
-screen* InitializeSDL(int width,int height, bool fullscreen)
+
+Screen* InitializeSDL(int width,int height, bool fullscreen)
 {
   if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) !=0)
     {
@@ -59,7 +49,7 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
       exit(1);
     }
 
-  screen *s = new screen;
+  Screen *s = new Screen;
   s->width = width;
   s->height = height;
   s->buffer = new uint32_t[width*height];
@@ -135,40 +125,51 @@ bool NoQuitMessageSDL()
   return true;
 }
 
-void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour)
+void SDL_Renderframe(Screen* s)
 {
-  if(x<0 || x>=s->width || y<0 || y>=s->height)
-    {
-      return;
-    }
-  uint32_t r = uint32_t( colour.r );
-  uint32_t g = uint32_t( colour.g );
-  uint32_t b = uint32_t( colour.b );
-
-  #pragma omp critical
-  s->buffer[y*s->width+x] = (255<<24) + (r<<16) + (g<<8) + b;
+  SDL_UpdateTexture(s->texture, NULL, s->buffer, s->width * sizeof(uint32_t));
+  SDL_RenderClear(s->renderer);
+  SDL_RenderCopy(s->renderer, s->texture, NULL, NULL);
+  SDL_RenderPresent(s->renderer);
 }
 
-void PutFloatPixelSDL(screen* s, int x, int y, glm::vec3 colour)
+void KillSDL(Screen* s)
 {
-  if(x<0 || x>=s->width || y<0 || y>=s->height)
-    {
-      return;
-    }
-  uint32_t r = uint32_t( glm::clamp( 255*colour.r, 0.f, 255.f ) );
-  uint32_t g = uint32_t( glm::clamp( 255*colour.g, 0.f, 255.f ) );
-  uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
+  delete[] s->buffer;
+  delete[] s->floatBuffer;
+  SDL_DestroyTexture(s->texture);
+  SDL_DestroyRenderer(s->renderer);
+  SDL_DestroyWindow(s->window);
+  SDL_Quit();
+}
 
-  #pragma omp critical
+void SDL_SaveImage(Screen *s, const char* filename)
+{
+  uint32_t rmask, gmask, bmask, amask;
+
+  if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
   {
-    s->floatBuffer[y*s->width+x].x = r;
-    s->floatBuffer[y*s->width+x].y = g;
-    s->floatBuffer[y*s->width+x].z = b;
+    amask = 0xff << 0;
+    rmask = 0xff << 8;
+    gmask = 0xff << 16;
+    bmask = 0xff << 24;
   }
-}
+  else
+  {
+    amask = 0xff << 24;
+    rmask = 0xff << 16;
+    gmask = 0xff << 8;
+    bmask = 0xff << 0;
+  }
 
-void PutDepthSDL(screen* s, int x, int y, float depth)
-{
-  #pragma omp critical
-  s->floatBuffer[y*s->width + x].w = depth;
+  SDL_Surface* surf = SDL_CreateRGBSurfaceFrom((void*)s->buffer, s->width, s->height,
+    32, s->width * sizeof(uint32_t),
+    rmask, gmask, bmask, amask);
+  if (SDL_SaveBMP(surf, filename) != 0)
+  {
+    std::cout << "Failed to save image: "
+      << SDL_GetError() << std::endl;
+    exit(1);
+  }
+
 }

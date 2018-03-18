@@ -15,6 +15,10 @@ public:
 
 	// loads texture from the specified path relative to the resources directory
 	Texture(const std::string& texturePath);
+
+  // creates an empty texture of the desired size
+  Texture(int inWidth, int inHeight, int inChannels = 3);
+
 	virtual ~Texture();
 
 	vec4 SampleTexture(vec2 UV) const;

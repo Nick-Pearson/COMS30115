@@ -23,7 +23,7 @@
 //#define NUM_DIRS 0
 
 // takes around 4 mins for 720x720
-#define MAX_BOUNCES 1
+#define MAX_BOUNCES 0
 #define NUM_DIRS 128
 
 // takes around 10 secs for 720x720
@@ -54,7 +54,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
       vec3 colour = ShadePoint(cameraPosition, vec3(dir), scene);
 
-      PutFloatPixelSDL(screenptr, x, y, colour);
+      screenptr->PutFloatPixel(x, y, colour);
     }
   }
 
@@ -64,7 +64,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
     {
       //vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
       vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width+x]);
-      PutPixelSDL(screenptr, x, y, colour);
+      screenptr->PutPixel(x, y, colour);
     }
   }
 }

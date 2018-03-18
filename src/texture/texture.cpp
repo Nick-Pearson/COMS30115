@@ -11,9 +11,22 @@ Texture::Texture(const std::string& texturePath)
 	imageData = stbi_load(fullTexturePath.c_str(), &width, &height, &channels, 0);
 }
 
+Texture::Texture(int inWidth, int inHeight, int inChannels)
+{
+  channels = inChannels;
+  width = inWidth;
+  height = inHeight;
+
+  const int textureBytes = sizeof(unsigned char) * width * height * channels;
+
+  imageData = (unsigned char*)malloc(textureBytes);
+  memset(imageData, 0, textureBytes);
+}
+
 Texture::~Texture()
 {
-	stbi_image_free(imageData);
+  // technically should use stbi free function but that just internally calls free anyway so it makes no difference
+	free(imageData);
 }
 
 vec4 Texture::SampleTexture(vec2 UV) const

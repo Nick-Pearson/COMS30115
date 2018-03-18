@@ -42,9 +42,6 @@ int main(int argc, char** argv)
 
   renderer->Initialise(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-  std::vector<TestTriangle> mesh;
-  LoadTestModel(mesh);
-
   int t = SDL_GetTicks();
   srand(t);
 

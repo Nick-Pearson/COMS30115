@@ -7,6 +7,7 @@
 #include "../light/light.h"
 #include "../material/material.h"
 #include "antialiasing.h"
+#include "rendertarget.h"
 
 #include <vector>
 
@@ -16,35 +17,65 @@ void RasterizeRenderer::Draw(const Scene* scene)
 {
   mat4 cameraMatrix = glm::translate(glm::transpose(scene->camera->rotationMatrix), -scene->camera->position);
   float focalLength = screenptr->width / (2.0f * tan(scene->camera->FOV / TWO_PI));
-  const float near = scene->camera->nearClipPlane;
-  const float far = scene->camera->farClipPlane;
 
+  const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
+  glm::vec3 colour(0.0f, 0.0f, 0.0f);
+
+  for (const std::shared_ptr<Light> light : *Lights)
+  {
+    if (light->CastsShadows())
+      light->UpdateShadowMap();
+  }
+
+  RasterizeScene<false>(scene, screenptr,
+    [&](const glm::vec4& point, glm::ivec2& outProjectedPoint) {
+      return VertexShader(cameraMatrix, focalLength, point, outProjectedPoint);
+    },
+    [&](const Scene* scene, std::shared_ptr<Material> mat, const class Triangle& Tri, const struct Vertex& Vertex) {
+      return PixelShader(scene, mat, Tri, Vertex);
+    });
+
+  for (int y = 0; y < screenptr->height; y++)
+  {
+    for (int x = 0; x < screenptr->width; x++)
+    {
+      //vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
+      //vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width + x]);
+      vec3 colour = glm::vec3(100.0f, 100.0f, 100.0f) * clamp(screenptr->floatBuffer[y*screenptr->width + x].w, 0.0f, 2.55f);
+      screenptr->PutPixel(x, y, colour);
+    }
+  }
+}
+
+template<bool includePixels, typename VertexPred, typename PixelPred>
+void RasterizeRenderer::RasterizeScene(const Scene* scene, RenderTarget* target, VertexPred VertexShader, PixelPred PixelShader)
+{
   const std::vector<std::shared_ptr<Mesh>>* Meshes = scene->GetMeshes();
 
   for (const std::shared_ptr<Mesh> mesh : *Meshes)
   {
-    int V = mesh->Verticies.size();
-    int T = mesh->Triangles.size();
+    size_t V = mesh->Verticies.size();
+    size_t T = mesh->Triangles.size();
 
-	  struct ProjectedVert
-	  {
-		  float invdepth;
-		  glm::ivec2 position;
-	  };
+    struct ProjectedVert
+    {
+      float invdepth;
+      glm::ivec2 position;
+    };
     std::vector<ProjectedVert> projectedVerts(V);
 
-    for(int i = 0; i < V; ++i)
+    for (int i = 0; i < V; ++i)
     {
-      const float depth = VertexShader(cameraMatrix, focalLength, glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
-	    projectedVerts[i].invdepth = 1.0f / depth;
+      const float depth = VertexShader(glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
+      projectedVerts[i].invdepth = 1.0f / depth;
     }
 
-    for(int i = 0; i < T; ++i)
+    for (int i = 0; i < T; ++i)
     {
       const Triangle& Tri = mesh->Triangles[i];
 
       // if the entire triangle is behind the camera we can skip it
-      if(projectedVerts[Tri.v0].invdepth <= 0.0f &&
+      if (projectedVerts[Tri.v0].invdepth <= 0.0f &&
         projectedVerts[Tri.v1].invdepth <= 0.0f &&
         projectedVerts[Tri.v2].invdepth <= 0.0f)
         continue;
@@ -57,8 +88,8 @@ void RasterizeRenderer::Draw(const Scene* scene)
       glm::ivec2 triMin, triMax;
       triMin.x = std::max(std::min(std::min(v0.x, v1.x), v2.x), 0);
       triMin.y = std::max(std::min(std::min(v0.y, v1.y), v2.y), 0);
-      triMax.x = std::min(std::max(std::max(v0.x, v1.x), v2.x), screenptr->width-1);
-      triMax.y = std::min(std::max(std::max(v0.y, v1.y), v2.y), screenptr->height-1);
+      triMax.x = std::min(std::max(std::max(v0.x, v1.x), v2.x), target->width - 1);
+      triMax.y = std::min(std::max(std::max(v0.y, v1.y), v2.y), target->height - 1);
 
       auto edgeFunction = [](const glm::vec2& v0, const glm::vec2& v1, const glm::vec2& p)
       {
@@ -67,38 +98,38 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
       const float area = edgeFunction(glm::vec2(v1), glm::vec2(v0), glm::vec2(v2));
 
-      if(AMath::isNearlyZero(area))
+      if (AMath::isNearlyZero(area))
         continue;
 
-	    for (int y = triMin.y; y <= triMax.y; ++y)
-	    {
-        const glm::vec2 p(triMin.x-1.0f, y);
+      for (int y = triMin.y; y <= triMax.y; ++y)
+      {
+        const glm::vec2 p(triMin.x - 1.0f, y);
 
         // from : https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-practical-implementation
         // the step of w is constant over the x loop so it only needs to be evaluated once at the start of the loop
         float w0_cur = edgeFunction(glm::vec2(v2), glm::vec2(v1), p);
-        const float w0_step = v1.y-v2.y;
+        const float w0_step = v1.y - v2.y;
 
         float w1_cur = edgeFunction(glm::vec2(v0), glm::vec2(v2), p);
-        const float w1_step = v2.y-v0.y;
+        const float w1_step = v2.y - v0.y;
 
         float w2_cur = edgeFunction(glm::vec2(v1), glm::vec2(v0), p);
-        const float w2_step = v0.y-v1.y;
+        const float w2_step = v0.y - v1.y;
 
         bool wasValid = false;
 
-		    for (int x = triMin.x; x <= triMax.x; ++x)
-		    {
+        for (int x = triMin.x; x <= triMax.x; ++x)
+        {
           // increment our W values
           w0_cur += w0_step;
           w1_cur += w1_step;
           w2_cur += w2_step;
 
           //check if this point is within the triangle
-          if(w0_cur < 0.0f || w1_cur < 0.0f || w2_cur < 0.0f)
+          if (w0_cur < 0.0f || w1_cur < 0.0f || w2_cur < 0.0f)
           {
             // if we have already drawn the triangle on this line then it is impossible for us to draw it again, so break in that case
-            if(!wasValid)
+            if (!wasValid)
               continue;
             else
               break;
@@ -112,28 +143,19 @@ void RasterizeRenderer::Draw(const Scene* scene)
 
           const float depth = (projectedVerts[Tri.v0].invdepth * w0) + (projectedVerts[Tri.v1].invdepth * w1) + (projectedVerts[Tri.v2].invdepth * w2);
 
-          if (GetDepthSDL(screenptr, x, y) < depth)
+          if (target->GetDepth(x, y) < depth)
           {
-            PutDepthSDL(screenptr, x, y, depth);
+            target->PutDepth(x, y, depth);
 
-            Vertex Vert = (mesh->Verticies[Tri.v0] * w0 * projectedVerts[Tri.v0].invdepth) + (mesh->Verticies[Tri.v1] * w1 * projectedVerts[Tri.v1].invdepth) + (mesh->Verticies[Tri.v2] * w2 * projectedVerts[Tri.v2].invdepth);
-            Vert *= 1.0f / depth;
+            if(includePixels) {
+              Vertex Vert = (mesh->Verticies[Tri.v0] * w0 * projectedVerts[Tri.v0].invdepth) + (mesh->Verticies[Tri.v1] * w1 * projectedVerts[Tri.v1].invdepth) + (mesh->Verticies[Tri.v2] * w2 * projectedVerts[Tri.v2].invdepth);
+              Vert *= 1.0f / depth;
 
-            PutFloatPixelSDL(screenptr, x, y, PixelShader(scene, mesh->GetMaterial(i), Tri, Vert));
-            //PutFloatPixelSDL(screenptr, x, y, glm::vec3(1.0f, 1.0f, 1.0f) * clamp(depth, 0.0f, 2.55f));
+              target->PutFloatPixel(x, y, PixelShader(scene, mesh->GetMaterial(i), Tri, Vert));
+            }
           }
-		    }
-	    }
-    }
-  }
-
-  for (int y = 0; y < screenptr->height; y++)
-  {
-    for (int x = 0; x < screenptr->width; x++)
-    {
-      //vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
-      vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width + x]);
-      PutPixelSDL(screenptr, x, y, colour);
+        }
+      }
     }
   }
 }
@@ -156,6 +178,9 @@ glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Mat
 
   for (const std::shared_ptr<Light> light : *Lights)
   {
+    if(light->CastsShadows() && light->EvaluateShadowMap(Vertex.position))
+      continue;
+
     glm::vec3 brdf = material->CalculateBRDF(scene->camera->position - Vertex.position, glm::normalize(light->GetLightDirection(Vertex.position)), Tri.normal);
     colour += brdf * light->CalculateLightAtLocation(Vertex.position);
   }
@@ -172,6 +197,6 @@ void RasterizeRenderer::DrawLine(const glm::ivec2& a, const glm::ivec2& b, const
   AMath::interpolate(a, b, points);
 
   for (int i = 0; i < points.size(); ++i) {
-      PutPixelSDL(screenptr, points[i].x, points[i].y, colour);
+    screenptr->PutPixel(points[i].x, points[i].y, colour);
   }
 }
