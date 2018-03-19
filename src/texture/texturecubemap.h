@@ -9,7 +9,7 @@
 
 class Texture;
 
-enum class CubemapDirections
+enum class CubemapDirections : uint8_t
 {
 	Top = 0,
 	Bottom,

@@ -15,8 +15,9 @@
 
 void RasterizeRenderer::Draw(const Scene* scene)
 {
-  mat4 cameraMatrix = glm::translate(glm::transpose(scene->camera->rotationMatrix), -scene->camera->position);
-  float focalLength = screenptr->width / (2.0f * tan(scene->camera->FOV / TWO_PI));
+  const mat4 cameraMatrix = glm::translate(glm::transpose(scene->camera->rotationMatrix), -scene->camera->position);
+  //float focalLength = screenptr->width / (2.0f * tan(scene->camera->FOV / TWO_PI));
+  const mat4 projection = CreatePerspectiveMatrix(scene->camera);
 
   const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
   glm::vec3 colour(0.0f, 0.0f, 0.0f);
@@ -27,9 +28,9 @@ void RasterizeRenderer::Draw(const Scene* scene)
       light->UpdateShadowMap();
   }
 
-  RasterizeScene<false>(scene, screenptr,
-    [&](const glm::vec4& point, glm::ivec2& outProjectedPoint) {
-      return VertexShader(cameraMatrix, focalLength, point, outProjectedPoint);
+  RasterizeScene(scene, screenptr,
+    [&](const glm::vec4& point, glm::vec4& outProjectedPoint) {
+      return VertexShader(cameraMatrix, projection, point, outProjectedPoint);
     },
     [&](const Scene* scene, std::shared_ptr<Material> mat, const class Triangle& Tri, const struct Vertex& Vertex) {
       return PixelShader(scene, mat, Tri, Vertex);
@@ -40,13 +41,14 @@ void RasterizeRenderer::Draw(const Scene* scene)
     for (int x = 0; x < screenptr->width; x++)
     {
       //vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
-      //vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width + x]);
-      vec3 colour = glm::vec3(100.0f, 100.0f, 100.0f) * clamp(screenptr->floatBuffer[y*screenptr->width + x].w, 0.0f, 2.55f);
+      vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width + x]);
+      //vec3 colour = glm::vec3(100.0f, 100.0f, 100.0f) * clamp(screenptr->floatBuffer[y*screenptr->width + x].w, 0.0f, 2.55f);
       screenptr->PutPixel(x, y, colour);
     }
   }
 }
 
+#pragma optimize("", off)
 template<bool includePixels, typename VertexPred, typename PixelPred>
 void RasterizeRenderer::RasterizeScene(const Scene* scene, RenderTarget* target, VertexPred VertexShader, PixelPred PixelShader)
 {
@@ -59,15 +61,29 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, RenderTarget* target,
 
     struct ProjectedVert
     {
+      // depth value
       float invdepth;
+
+      // position in homogenious clip space
+      glm::vec4 hPosition;
+
+      // position in raster space
       glm::ivec2 position;
     };
     std::vector<ProjectedVert> projectedVerts(V);
 
     for (int i = 0; i < V; ++i)
     {
-      const float depth = VertexShader(glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
+      const float depth = VertexShader(glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].hPosition);
       projectedVerts[i].invdepth = 1.0f / depth;
+
+      glm::vec2 NDCposition(projectedVerts[i].hPosition.x / projectedVerts[i].hPosition.w, projectedVerts[i].hPosition.y / projectedVerts[i].hPosition.w);
+      NDCposition += 1.0f;
+      NDCposition *= 0.5f;
+      NDCposition = 1.0f - NDCposition;
+      NDCposition *= glm::vec2(target->width - 1.0f, target->height - 1.0f);
+      
+      projectedVerts[i].position = glm::ivec2((int)NDCposition.x, (int)NDCposition.y);
     }
 
     for (int i = 0; i < T; ++i)
@@ -90,6 +106,10 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, RenderTarget* target,
       triMin.y = std::max(std::min(std::min(v0.y, v1.y), v2.y), 0);
       triMax.x = std::min(std::max(std::max(v0.x, v1.x), v2.x), target->width - 1);
       triMax.y = std::min(std::max(std::max(v0.y, v1.y), v2.y), target->height - 1);
+
+      Outcode o0 = CalculateOutcode(target, v0.x, v0.y);
+      Outcode o1 = CalculateOutcode(target, v1.x, v1.y);
+      Outcode o2 = CalculateOutcode(target, v2.x, v2.y);
 
       auto edgeFunction = [](const glm::vec2& v0, const glm::vec2& v1, const glm::vec2& p)
       {
@@ -159,15 +179,14 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, RenderTarget* target,
     }
   }
 }
+#pragma optimize("", on)
 
 
-float RasterizeRenderer::VertexShader(const glm::mat4& view, float focalLength, const glm::vec4& v, glm::ivec2& outProjPos) const
+float RasterizeRenderer::VertexShader(const glm::mat4& view, const glm::mat4& projection, const glm::vec4& v, glm::vec4& outProjPos) const
 {
   glm::vec4 transformedV = view * v;
 
-  const float Z = std::abs(transformedV.z);
-  outProjPos.x = (int)(focalLength * transformedV.x / Z) + (screenptr->width * 0.5f);
-  outProjPos.y = (int)(focalLength * transformedV.y / Z) + (screenptr->height * 0.5f);
+  outProjPos = transformedV * projection;
   return transformedV.z;
 }
 
@@ -186,6 +205,36 @@ glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Mat
   }
 
   return colour;
+}
+
+Outcode RasterizeRenderer::CalculateOutcode(RenderTarget* target, int x, int y)
+{
+  Outcode Code = Outcode::INSIDE;
+
+  if (x < 0)
+  {
+    Code |= Outcode::LEFT;
+  }
+  else if (x >= target->width)
+  {
+    Code |= Outcode::RIGHT;
+  }
+  
+  if (y < 0)
+  {
+    Code |= Outcode::BOTTOM;
+  }
+  else if (y >= target->height)
+  {
+    Code |= Outcode::TOP;
+  }
+
+  return Code;
+}
+
+glm::mat4 RasterizeRenderer::CreatePerspectiveMatrix(const Camera* camera) const
+{
+  return glm::perspective(AMath::ToRads(camera->FOV * 2.f), 1.0f, camera->nearClipPlane, camera->farClipPlane);
 }
 
 void RasterizeRenderer::DrawLine(const glm::ivec2& a, const glm::ivec2& b, const glm::vec3 colour)

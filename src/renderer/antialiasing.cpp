@@ -5,8 +5,8 @@
 
 using namespace std;
 
-const float EDGE_THRESHOLD_MIN = 0.0312;
-const float EDGE_THRESHOLD_MAX = 0.125;
+const float EDGE_THRESHOLD_MIN = 0.0312f;
+const float EDGE_THRESHOLD_MAX = 0.125f;
 
 vec3 performAntiAliasing(vec4 *screen, int x, int y, int width, int height, vec4 colour)
 {
