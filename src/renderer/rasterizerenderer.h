@@ -3,6 +3,7 @@
 
 #include "renderer.h"
 
+#include <vector>
 #include <memory>
 
 #include <glm/glm.hpp>
@@ -11,27 +12,43 @@ class Material;
 class RenderTarget;
 class Camera;
 
-enum class Outcode : uint8_t
+enum class Axis : uint8_t
 {
-  INSIDE    = 0, // 0000
-  LEFT      = 1, // 0001
-  RIGHT     = 2, // 0010
-  BOTTOM    = 4, // 0100
-  TOP       = 8  // 1000
+  X = 0,
+  Y,
+  Z,
+  W
 };
-
-inline Outcode& operator|=(Outcode& a, Outcode b)
-{
-  return (Outcode&)((uint8_t&)a |= (uint8_t)b);
-}
-
-inline Outcode operator&(Outcode a, Outcode b)
-{
-  return (Outcode)((uint8_t)a & (uint8_t)b);
-}
 
 class RasterizeRenderer : public Renderer
 {
+  struct ProjectedVert
+  {
+    // depth value
+    float depth;
+
+    // position in homogeneous clip space
+    glm::vec4 position;
+
+    void operator-=(const ProjectedVert& other)
+    {
+      depth -= other.depth;
+      position -= other.position;
+    }
+
+    void operator*=(float factor)
+    {
+      depth *= factor;
+      position *= factor;
+    }
+
+    void operator+=(const ProjectedVert& other)
+    {
+      depth += other.depth;
+      position += other.position;
+    }
+  };
+
 public:
   void Draw(const Scene* scene) override;
 
@@ -43,13 +60,28 @@ public:
    * @param PixelShader   :: function that calculates a colour value from material and triangle/vertex values
    */
   template<bool includePixels = true, typename VertexPred, typename PixelPred>
-  static void RasterizeScene(const Scene* scene, RenderTarget* screenptr, VertexPred VertexShader, PixelPred PixelShader);
+  static void RasterizeScene(const Scene* scene, RenderTarget* target, VertexPred VertexShader, PixelPred PixelShader);
 
 private:
   float VertexShader(const glm::mat4& view, const glm::mat4& projection, const glm::vec4& v, glm::vec4& outProjPos) const;
   glm::vec3 PixelShader(const Scene* scene, std::shared_ptr<Material> material, const class Triangle& Tri, const struct Vertex& Vertex) const;
 
-  static Outcode CalculateOutcode(RenderTarget* target, int x, int y);
+  /* Clips the input list of triangles against the specified Axis
+   * @param triangles :: inputs a list of triangles to clip, outputs a list of clipped triangles
+   * @param vertexPositions :: inputs positions of the verticies for the triangles in homogenious clip space, outputs new positions
+   * @param vertexData :: attributes for each vertex
+   * @param axis :: axis to clip against
+   */
+  static void ClipTriangle(std::vector<Triangle>& inoutTriangles, std::vector<ProjectedVert>& inoutVertexPositions, std::vector<Vertex>& inoutVertexData);
+
+  // this function handles clipping the set of triangles against a single axis
+  static void ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles, std::vector<ProjectedVert>& inoutVertexPositions, std::vector<Vertex>& inoutVertexData, Axis axis);
+
+  // This function handles clipping of a single triangle edge where v0 is valid and v1 is invalid
+  static void ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Data, ProjectedVert& v1Pos, Vertex& v1Data, Axis axis);
+
+  //performs the perspective divide to convert homogeneous coords to screen space coords
+  static glm::ivec2 ConvertHomogeneousCoordinatesToRasterSpace(RenderTarget* target, const glm::vec4& homogeneousCoordinates);
 
   // returns a projection matrix for the camera transforming points to homogenious clip space
   glm::mat4 CreatePerspectiveMatrix(const Camera* camera) const;

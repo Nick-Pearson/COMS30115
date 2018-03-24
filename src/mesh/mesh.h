@@ -28,17 +28,12 @@ struct Vertex
   vec3   position = vec3(0.0f, 0.0f, 0.0f);
   vec2   uv0      = vec2(0.0f, 0.0f);
 
+  // These operators need to be updated when the above data is changed
+
   void operator*=(float factor)
   {
     position *= factor;
     uv0 *= factor;
-  }
-
-  Vertex operator*(float factor) const
-  {
-    Vertex returnValue = *this;
-    returnValue *= factor;
-    return returnValue;
   }
 
   void operator+=(const Vertex& other)
@@ -47,10 +42,31 @@ struct Vertex
     uv0 += other.uv0;
   }
 
+  void operator-=(const Vertex& other)
+  {
+    position -= other.position;
+    uv0 -= other.uv0;
+  }
+
+  // these do not need to change
+  Vertex operator*(float factor) const
+  {
+    Vertex returnValue = *this;
+    returnValue *= factor;
+    return returnValue;
+  }
+
   Vertex operator+(const Vertex& other)
   {
     Vertex returnValue = *this;
     returnValue += other;
+    return returnValue;
+  }
+
+  Vertex operator-(const Vertex& other)
+  {
+    Vertex returnValue = *this;
+    returnValue -= other;
     return returnValue;
   }
 };
@@ -60,11 +76,10 @@ class Triangle
 {
 public:
 	int v0, v1, v2;
-	vec3 colour;
 	vec3 normal;
 
-	Triangle(int v0, int v1, int v2, glm::vec3 colour)
-		: v0(v0), v1(v1), v2(v2), colour(colour), normal(glm::vec3())
+	Triangle(int v0, int v1, int v2)
+		: v0(v0), v1(v1), v2(v2), normal(glm::vec3())
 	{}
 
   inline void CalculateNormal(const glm::vec3& v0Pos, const glm::vec3& v1Pos, const glm::vec3& v2Pos)

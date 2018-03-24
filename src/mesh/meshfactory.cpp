@@ -191,7 +191,7 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
       if(v1 < 0) v1 = verts.size() + v1 + 1;
       if(v2 < 0) v2 = verts.size() + v2 + 1;
 
-      triangles.push_back(Triangle(v1 - 1, v0 - 1, v2 - 1, glm::vec3(1.0f, 1.0f, 1.0f)));
+      triangles.push_back(Triangle(v1 - 1, v0 - 1, v2 - 1));
       materialIndicies.push_back(curMaterialIndex);
     }
     else if (line.substr(0, 6).compare("mtllib") == 0)
@@ -223,10 +223,10 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
 
 namespace
 {
-  void AddQuad(int v1, int v2, int v3, int v4, const vec3& colour, vector<Triangle>& triangles)
+  void AddQuad(int v1, int v2, int v3, int v4, vector<Triangle>& triangles)
   {
-    triangles.push_back(Triangle(v1, v3, v2, colour));
-    triangles.push_back(Triangle(v2, v3, v4, colour));
+    triangles.push_back(Triangle(v1, v3, v2));
+    triangles.push_back(Triangle(v2, v3, v4));
   }
 }
 
@@ -265,24 +265,24 @@ shared_ptr<Mesh> MeshFactory::GetCornelRoom()
   triangles.reserve(5 * 2 * 3);
 
 	// Floor:
-	triangles.push_back( Triangle( C, B, A, white) );
-	triangles.push_back( Triangle( C, D, B, white) );
+	triangles.push_back( Triangle( C, B, A) );
+	triangles.push_back( Triangle( C, D, B) );
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, red ) );
-	triangles.push_back( Triangle( C, E, G, red) );
+	triangles.push_back( Triangle( A, E, C) );
+	triangles.push_back( Triangle( C, E, G) );
 
 	// Right wall
-	triangles.push_back( Triangle( F, B, D, green ) );
-	triangles.push_back( Triangle( H, F, D, green) );
+	triangles.push_back( Triangle( F, B, D) );
+	triangles.push_back( Triangle( H, F, D) );
 
 	// Ceiling
-	triangles.push_back( Triangle( E, F, G, white) );
-	triangles.push_back( Triangle( F, H, G, white) );
+	triangles.push_back( Triangle( E, F, G) );
+	triangles.push_back( Triangle( F, H, G) );
 
 	// Back wall
-	triangles.push_back( Triangle( G, D, C, white ) );
-	triangles.push_back( Triangle( G, H, D, white ) );
+	triangles.push_back( Triangle( G, D, C) );
+	triangles.push_back( Triangle( G, H, D) );
 
 	for (Vertex& vert : verts)
 	{
@@ -318,14 +318,14 @@ shared_ptr<Mesh> MeshFactory::GetCube(const vec3& colour, const glm::vec3& pos, 
   triangles.reserve(12);
 
   // Top and bottom
-  AddQuad(0, 1, 4, 5, colour, triangles);
-  AddQuad(3, 2, 7, 6, colour, triangles);
+  AddQuad(0, 1, 4, 5, triangles);
+  AddQuad(3, 2, 7, 6, triangles);
 
   // sides
-  AddQuad(1, 0, 3, 2, colour, triangles);
-  AddQuad(4, 5, 6, 7, colour, triangles);
-  AddQuad(2, 0, 6, 4, colour, triangles);
-  AddQuad(1, 3, 5, 7, colour, triangles);
+  AddQuad(1, 0, 3, 2, triangles);
+  AddQuad(4, 5, 6, 7, triangles);
+  AddQuad(2, 0, 6, 4, triangles);
+  AddQuad(1, 3, 5, 7, triangles);
 
   for (Vertex& vert : verts)
   {
