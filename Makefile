@@ -26,9 +26,15 @@ endif
 
 ########
 #       SDL options
-SDL_CFLAGS := $(shell sdl2-config --cflags)
+ifdef __no_sdl
+  SDL_CFLAGS := -D USE_SDL=0
+  SDL_LDFLAGS := -D USE_SDL=0
+else
+  SDL_CFLAGS := -D USE_SDL=1 $(shell sdl2-config --cflags)
+  SDL_LDFLAGS := -D USE_SDL=1 $(shell sdl2-config --libs)
+endif
+
 GLM_CFLAGS := -I./libs/glm/ -I./libs/stb
-SDL_LDFLAGS := $(shell sdl2-config --libs)
 
 #######
 # File lists
