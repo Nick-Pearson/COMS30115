@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     float fps = 1000 / dt ;
 
     // update gameplay code
-    std::cout << "FPS: " << fps << " last frame time " << dt << " ms" << std::endl;
+    printf("FPS: %.3f last frame time %.0f ms\n", fps, dt);
     scene->Update(dt / 1000.0f);
 
     t = t2;

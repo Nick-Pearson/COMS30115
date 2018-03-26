@@ -3,10 +3,6 @@
 
 void Screen::PutPixel(int x, int y, const glm::vec3& colour)
 {
-  if (x<0 || x >= width || y<0 || y >= height)
-  {
-    return;
-  }
   uint32_t r = uint32_t(colour.r);
   uint32_t g = uint32_t(colour.g);
   uint32_t b = uint32_t(colour.b);
@@ -17,10 +13,6 @@ void Screen::PutPixel(int x, int y, const glm::vec3& colour)
 
 void Screen::PutFloatPixel(int x, int y, const glm::vec3& colour)
 {
-  if (x<0 || x >= width || y<0 || y >= height)
-  {
-    return;
-  }
   uint32_t r = uint32_t(glm::clamp(255 * colour.r, 0.f, 255.f));
   uint32_t g = uint32_t(glm::clamp(255 * colour.g, 0.f, 255.f));
   uint32_t b = uint32_t(glm::clamp(255 * colour.b, 0.f, 255.f));
