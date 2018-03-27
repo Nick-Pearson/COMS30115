@@ -1,5 +1,7 @@
 build*/
 
+trace.out
+
 # Windows & Visual Studio Ignores
 
 *.sln

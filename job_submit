@@ -1,0 +1,22 @@
+#!/bin/bash
+
+#SBATCH --job-name rt
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=14
+#SBATCH --time 00:60:00
+#SBATCH --partition serial
+#SBATCH --output trace.out
+
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo Slurm job ID is $SLURM_JOB_ID
+echo This job runs on the following machines:
+echo `echo $SLURM_JOB_NODELIST | uniq`
+
+export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
+export OMP_NUM_THREADS=14
+
+#! Run the executable
+./build/raytracer
