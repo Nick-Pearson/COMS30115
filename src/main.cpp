@@ -23,7 +23,7 @@ void Update(float deltaMilliseconds);
 int main(int argc, char** argv)
 {
   Scene* scene = new Scene;
-  
+
   scene->AddMesh(MeshFactory::LoadFromFile("cornel.obj"));
 
   std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
@@ -42,8 +42,10 @@ int main(int argc, char** argv)
 
   renderer->Initialise(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-  int t = SDL_GetTicks();
-  srand(t);
+  #if USE_SDL
+int t = SDL_GetTicks();
+srand(t);
+  #endif
 
   while( NoQuitMessageSDL() )
   {
@@ -52,6 +54,7 @@ int main(int argc, char** argv)
     renderer->Draw(scene);
     renderer->SwapBuffers();
 
+#if USE_SDL
     int t2 = SDL_GetTicks();
     float dt = (float)(t2 - t);
     float fps = 1000 / dt ;
@@ -61,8 +64,9 @@ int main(int argc, char** argv)
     scene->Update(dt / 1000.0f);
 
     t = t2;
+#endif
 
-    #if SINGLE_FRAME
+    #if (SINGLE_FRAME || !USE_SDL)
     break;
     #endif
   }

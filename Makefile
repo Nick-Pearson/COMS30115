@@ -8,8 +8,6 @@ R_DIR=resources
 #   Output
 EXEC=$(B_DIR)/$(FILE)
 
-
-
 # default build settings
 CC_OPTS=-qopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3 -g
 LN_OPTS=-qopenmp -g
