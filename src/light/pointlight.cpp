@@ -22,6 +22,16 @@ glm::vec3 PointLight::GetLightDirection(const glm::vec3& location) const
   return m_Location - location;
 }
 
+
+glm::vec3 PointLight::GetRandomLightDirection(const glm::vec3& location) const
+{
+  #define RANDCOMP ((2.0f * (float)rand() * lightRadius / (float)RAND_MAX) - lightRadius)
+  glm::vec3 randomLoc = m_Location + glm::vec3(RANDCOMP, RANDCOMP, RANDCOMP);
+  #undef RANDCOMP
+
+  return randomLoc - location;
+}
+
 glm::vec3 PointLight::CalculateLightAtLocation(const glm::vec3& location) const
 {
   const glm::vec3 rHat = GetLightDirection(location);

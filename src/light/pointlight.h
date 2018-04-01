@@ -13,6 +13,7 @@ public:
   ~PointLight();
 
   glm::vec3 GetLightDirection(const glm::vec3& location) const override;
+  glm::vec3 GetRandomLightDirection(const glm::vec3& location) const override;
 
   glm::vec3 CalculateLightAtLocation(const glm::vec3& location) const override;
 
@@ -27,6 +28,8 @@ private:
   class TextureCubemap* shadowMap = nullptr;
 
   glm::vec3 m_Location;
+
+  float lightRadius = 0.2f;
 
 };
 

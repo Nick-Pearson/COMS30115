@@ -12,7 +12,12 @@ public:
     m_Colour(colour), m_Intensity(intensity), m_CastsShadows(castsShadows)
   {}
 
+  // get a direction vector from the location to the light center
   virtual glm::vec3 GetLightDirection(const glm::vec3& location) const = 0;
+
+  // get a direction vector from the location to a random point on the light surface
+  virtual glm::vec3 GetRandomLightDirection(const glm::vec3& location) const { return GetLightDirection(location); };
+
   virtual glm::vec3 CalculateLightAtLocation(const glm::vec3& location) const = 0;
 
   inline bool CastsShadows() const { return m_CastsShadows; }
