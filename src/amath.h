@@ -18,6 +18,9 @@ namespace AMath
 
   inline bool isNearlyZero(const float val) { return abs(val) < 0.001f;}
 
+  template<typename T>
+  inline T clamp(const T& val, const T& min, const T& max) { return val > max ? max : (val < min ? min : val); }
+
   // Angles
 
   // converts and angle in degrees to radians

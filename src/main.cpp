@@ -32,7 +32,8 @@ int main(int argc, char** argv)
   Bunny->Rotate(glm::vec3(0.0f, 180.0f, 180.0f));
   scene->AddMesh(Bunny);
 
-  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 14.0f, true, glm::vec3(0, -0.5, -0.7))));
+  //scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 14.0f, true, glm::vec3(0, -0.5, -0.7))));
+  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 50.0f, true, glm::vec3(0, 0, -2.4))));
 
 #if RAYTRACER
   Renderer* renderer = new RaytraceRenderer;

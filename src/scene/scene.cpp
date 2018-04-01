@@ -48,7 +48,11 @@ bool Scene::Raymarch(const vec3& start, const vec3& dir, Intersection& closestGe
 vec3 Scene::GetEnvironmentColour(const vec3& dir) const
 {
 	if(environment)
-		return environment->GetCubemapColour(dir);
+	{
+		uint8_t bytes[4];
+		environment->GetCubemapColour(dir, bytes);
+		return vec3((float)bytes[0] / 255.0f, (float)bytes[1] / 255.0f, (float)bytes[2] / 255.0f);
+	}
 
 	return vec3(0.0f, 0.0f, 0.0f);
 }

@@ -14,6 +14,13 @@ void Screen::PutPixel(int x, int y, const glm::vec3& colour)
   buffer[y*width + x] = (255 << 24) + (r << 16) + (g << 8) + b;
 }
 
+void Screen::GetPixel(int x, int y, uint8_t (&outColour)[3]) const
+{
+  outColour[0] = (uint8_t)((buffer[y*width + x] & 0x00ff0000) >> 16);
+  outColour[1] = (uint8_t)((buffer[y*width + x] & 0x0000ff00) >> 8);
+  outColour[2] = (uint8_t)( buffer[y*width + x] & 0x000000ff);
+}
+
 void Screen::PutFloatPixel(int x, int y, const glm::vec3& colour)
 {
   uint32_t r = uint32_t(glm::clamp(255 * colour.r, 0.f, 255.f));
@@ -150,46 +157,4 @@ void KillSDL(Screen* s)
   SDL_DestroyWindow(s->window);
   SDL_Quit();
 #endif
-}
-
-void SDL_SaveImage(Screen *s, const char* filename)
-{
-  int filesize = 54 + (3*s->width*s->height);
-
-  // https://web.archive.org/web/20080912171714/http://www.fortunecity.com/skyscraper/windows/364/bmpffrmt.html
-  unsigned char fileHeader[14] = {
-    'B', 'M', //Bitmap identifier
-    (unsigned char)filesize, (unsigned char)(filesize>>8), (unsigned char)(filesize>>16), (unsigned char)(filesize>>24), //filesize
-    0,0,0,0, //reserved
-    54,0,0,0 //byte offset to the start of image data
-  };
-  unsigned char infoHeader[40] = {
-    40,0,0,0, // bmpinfoheader size in bytes
-    (unsigned char)s->width,(unsigned char)(s->width>>8),(unsigned char)(s->width>>16),(unsigned char)(s->width>>24), //image width
-    (unsigned char)s->height,(unsigned char)(s->height>>8),(unsigned char)(s->height>>16),(unsigned char)(s->height>>24), //image height
-    1, 0, //planes
-    24,0 // bits per pixel (8bpc)
-    // ... remainder of bits stay defauled to 0
-    };
-  unsigned char padding[4] = {0,0,0,0};
-
-  FILE* fp = fopen(filename,"wb");
-
-  if(fp == NULL) return;
-
-  fwrite(&fileHeader, 1, 14, fp);
-  fwrite(&infoHeader, 1, 40, fp);
-
-  for(int i=0; i < s->height; i++)
-  {
-    const int y = s->height - i - 1;
-    for(int x = 0; x < s->width; ++x)
-    {
-      fwrite((uint8_t*)&s->buffer[(s->width * y) + x], 1, 3, fp);
-    }
-
-    fwrite(padding, 1, (4 - (s->width * 3) % 4) % 4, fp);
-  }
-
-  fclose(fp);
 }

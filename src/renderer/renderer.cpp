@@ -20,5 +20,5 @@ void Renderer::SwapBuffers()
 
 void Renderer::SaveCurrentFrame(const char* filename)
 {
-  SDL_SaveImage(screenptr, filename);
+  screenptr->SaveImage(filename);
 }

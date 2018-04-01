@@ -19,6 +19,7 @@ public:
   void PutFloatPixel(int x, int y, const glm::vec3& colour) override;
   void PutDepth(int x, int y, float depth) override;
   inline float GetDepth(int x, int y) const override { return floatBuffer[y*width + x].w; }
+  void GetPixel(int x, int y, uint8_t (&outColour)[3]) const override;
 
 public:
 

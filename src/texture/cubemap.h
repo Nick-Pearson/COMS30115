@@ -10,7 +10,7 @@ class Cubemap
 public:
 	virtual ~Cubemap() {}
 
-	virtual vec3 GetCubemapColour(const vec3& direction) const = 0;
+	virtual void GetCubemapColour(const vec3& direction, uint8_t (&colour)[4]) const = 0;
 };
 
 #endif

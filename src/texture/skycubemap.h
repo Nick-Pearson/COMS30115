@@ -7,8 +7,7 @@ class SkyCubemap : public Cubemap
 {
 public:
 
-	vec3 GetCubemapColour(const vec3& direction) const override;
+	void GetCubemapColour(const vec3& direction, uint8_t (&colour)[4]) const override;
 };
 
 #endif
-
