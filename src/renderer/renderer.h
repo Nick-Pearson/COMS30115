@@ -1,8 +1,6 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#include "../TestModel.h"
-
 #include "../SDLauxiliary.h"
 
 class Scene;
@@ -22,7 +20,7 @@ public:
 
 protected:
 
-  screen* screenptr = nullptr;
+  Screen* screenptr = nullptr;
 };
 
 #endif

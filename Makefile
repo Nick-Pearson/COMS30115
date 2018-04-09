@@ -8,8 +8,6 @@ R_DIR=resources
 #   Output
 EXEC=$(B_DIR)/$(FILE)
 
-
-
 # default build settings
 CC_OPTS=-qopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3 -g
 LN_OPTS=-qopenmp -g
@@ -26,9 +24,15 @@ endif
 
 ########
 #       SDL options
-SDL_CFLAGS := $(shell sdl2-config --cflags)
+ifdef __no_sdl
+  SDL_CFLAGS := -D USE_SDL=0
+  SDL_LDFLAGS := -D USE_SDL=0
+else
+  SDL_CFLAGS := -D USE_SDL=1 $(shell sdl2-config --cflags)
+  SDL_LDFLAGS := -D USE_SDL=1 $(shell sdl2-config --libs)
+endif
+
 GLM_CFLAGS := -I./libs/glm/ -I./libs/stb
-SDL_LDFLAGS := $(shell sdl2-config --libs)
 
 #######
 # File lists
@@ -73,12 +77,12 @@ $(B_DIR)/src_ras/%.o : %.cpp
 $(B_DIR)/src_ray/%.d: %.cpp
 	mkdir -p $(dir $@)
 	printf $(dir $@) > $@
-	$(CC) $(CC_OPTS) $(OPENMP_LIB) -MM -MG $*.cpp >> $@
+	$(CC) $(CC_OPTS) $(OPENMP_LIB) -MM -MG $*.cpp $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=1 -D RASTERIZER=0 >> $@
 
 $(B_DIR)/src_ras/%.d: %.cpp
 	mkdir -p $(dir $@)
 	printf $(dir $@) > $@
-	$(CC) $(CC_OPTS) $(OPENMP_LIB) -MM -MG $*.cpp >> $@
+	$(CC) $(CC_OPTS) $(OPENMP_LIB) -MM -MG $*.cpp $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=0 -D RASTERIZER=1 >> $@
 
 clean:
 	rm -rf $(B_DIR)
@@ -87,7 +91,3 @@ ifneq ($(MAKECMDGOALS), clean)
 -include $(SRCS:%.cpp=$(B_DIR)/src_ray/%.d)
 -include $(SRCS:%.cpp=$(B_DIR)/src_ras/%.d)
 endif
-
-# it is possible that the .d files will fail to exclude library files so I have definined empty rules for them
-glm/%.hpp:
-stb_image.h:

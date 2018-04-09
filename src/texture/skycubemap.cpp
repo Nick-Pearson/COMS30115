@@ -1,6 +1,9 @@
 #include "skycubemap.h"
 
-vec3 SkyCubemap::GetCubemapColour(const vec3& direction) const
+void SkyCubemap::GetCubemapColour(const vec3& direction, uint8_t (&colour)[4]) const
 {
-	return vec3(0.5f, 0.7f, 1.0f);
+	colour[0] = 128;
+	colour[1] = 179;
+	colour[2] = 255;
+	colour[3] = 255;
 }

@@ -1,29 +1,42 @@
 #ifndef SDL_AUXILIARY_H
 #define SDL_AUXILIARY_H
 
-#include <SDL.h>
+#if USE_SDL
+  #include <SDL.h>
+#endif
+
 #include <iostream>
 #include <glm/glm.hpp>
 #include <stdint.h>
 
-typedef struct{
+#include "renderer/rendertarget.h"
+
+class Screen : public RenderTarget
+{
+public:
+
+  void PutPixel(int x, int y, const glm::vec3& color) override;
+  void PutFloatPixel(int x, int y, const glm::vec3& colour) override;
+  void PutDepth(int x, int y, float depth) override;
+  inline float GetDepth(int x, int y) const override { return floatBuffer[y*width + x].w; }
+  void GetPixel(int x, int y, uint8_t (&outColour)[3]) const override;
+
+public:
+
+#if USE_SDL
   SDL_Window *window;
   SDL_Renderer *renderer;
   SDL_Texture *texture;
-  int height;
-  int width;
+#endif
+
   uint32_t *buffer;
   glm::vec4* floatBuffer; /* xyz contain colour info, w contains invdepth */
-} screen;
+};
 
-screen* InitializeSDL( int width, int height, bool fullscreen = false );
+Screen* InitializeSDL( int width, int height, bool fullscreen = false );
 bool NoQuitMessageSDL();
-void PutPixelSDL( screen *s, int x, int y, glm::vec3 color );
-void PutFloatPixelSDL(screen* s, int x, int y, glm::vec3 colour);
-void PutDepthSDL(screen* s, int x, int y, float depth);
-inline float GetDepthSDL(const screen* s, int x, int y) { return s->floatBuffer[y*s->width + x].w; }
-void SDL_Renderframe(screen *s);
-void KillSDL(screen* s);
-void SDL_SaveImage(screen *s, const char* filename);
+void SDL_Renderframe(Screen *s);
+void KillSDL(Screen* s);
+void SDL_SaveImage(Screen *s, const char* filename);
 
 #endif

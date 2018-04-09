@@ -26,6 +26,9 @@
 #define MAX_BOUNCES 0
 #define NUM_DIRS 128
 
+// number of shadows rays to send out
+#define SHADOW_RAYS 1
+
 // takes around 10 secs for 720x720
 //#define MAX_BOUNCES 0
 //#define NUM_DIRS 4
@@ -43,7 +46,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
   mat4 rotationMatrix = scene->camera->rotationMatrix;
   vec3 cameraPosition = scene->camera->position;
 
-  float focalLength = screenWidth / (2.0f * tan(scene->camera->FOV / TWO_PI));
+  float focalLength = screenWidth / tan(AMath::ToRads(scene->camera->FOV));
 
   #pragma omp parallel for schedule(static)
   for (int y = 0; y < screenHeight; y++)
@@ -54,7 +57,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
       vec3 colour = ShadePoint(cameraPosition, vec3(dir), scene);
 
-      PutFloatPixelSDL(screenptr, x, y, colour);
+      screenptr->PutFloatPixel(x, y, colour);
     }
   }
 
@@ -62,8 +65,9 @@ void RaytraceRenderer::Draw(const Scene* scene)
   {
     for (int x = 0; x < screenWidth; x++)
     {
-      vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight);
-      PutPixelSDL(screenptr, x, y, colour);
+      //vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
+      vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width+x]);
+      screenptr->PutPixel(x, y, colour);
     }
   }
 }
@@ -75,19 +79,34 @@ vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection&
 
   for (const std::shared_ptr<Light> light : *Lights)
   {
+    float lightContribution = 0.0f;
     vec3 lightDir = light->GetLightDirection(vec3(intersection.position));
 
     if(light->CastsShadows())
     {
-      Intersection shadowIntersection;
-      if (scene->ShadowIntersection(intersection.position, lightDir, shadowIntersection))
+      for(int r = 0; r < SHADOW_RAYS; ++r)
       {
-        continue;
+        vec3 randLightDir = light->GetRandomLightDirection(vec3(intersection.position));
+
+        if(r == 0) //ensure at least one ray goes directly to the light
+          randLightDir = lightDir;
+
+        Intersection shadowIntersection;
+        if (scene->ShadowIntersection(intersection.position, randLightDir, shadowIntersection))
+        {
+          continue;
+        }
+
+        lightContribution += (1.0f / (float)SHADOW_RAYS);
       }
     }
+    else
+    {
+      lightContribution = 1.0f;
+    }
 
-    glm::vec3 brdf = intersection.mesh->material->CalculateBRDF(src_position - intersection.position, glm::normalize(lightDir), intersection.mesh->Triangles[intersection.triangleIndex].normal, intersection.mesh->Triangles[intersection.triangleIndex].colour);
-    colour += brdf * light->CalculateLightAtLocation(intersection.position);
+    glm::vec3 brdf = intersection.mesh->GetMaterial(intersection.triangleIndex)->CalculateBRDF(src_position - intersection.position, glm::normalize(lightDir), intersection.mesh->Triangles[intersection.triangleIndex].normal);
+    colour += lightContribution * brdf * light->CalculateLightAtLocation(intersection.position);
   }
 
   return colour;
@@ -101,8 +120,10 @@ vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const S
 
 vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, Intersection& intersection)
 {
+  //if (!scene->ClosestIntersection(position, dir, intersection))
+  //  return scene->GetEnvironmentColour(dir);
   if (!scene->ClosestIntersection(position, dir, intersection))
-    return scene->GetEnvironmentColour(dir);
+    return vec3(0.0f, 0.0f, 0.0f);
 
   vec3 light = DirectLight(position, intersection, scene);
 
@@ -135,7 +156,7 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
 	  float directionFactor = 1.0f;
 
 	  if(indIntersection.distance > 0.0f)
-		 distanceFactor = 10.0f / (indIntersection.distance * indIntersection.distance);
+		 distanceFactor = 1.5f / (indIntersection.distance * indIntersection.distance);
 
 	  if (indIntersection.mesh != nullptr)
 		 directionFactor = std::abs(glm::dot(indIntersection.mesh->Triangles[indIntersection.triangleIndex].normal, triangleNormal));

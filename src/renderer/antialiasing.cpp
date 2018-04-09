@@ -5,8 +5,8 @@
 
 using namespace std;
 
-const float EDGE_THRESHOLD_MIN = 0.0312;
-const float EDGE_THRESHOLD_MAX = 0.125;
+const float EDGE_THRESHOLD_MIN = 0.0312f;
+const float EDGE_THRESHOLD_MAX = 0.125f;
 
 #define FXAA_REDUCE_MUL   (1.0 / 8.0)
 #define FXAA_REDUCE_MIN   (1.0/ 128.0)

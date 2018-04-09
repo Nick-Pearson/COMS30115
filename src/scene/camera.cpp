@@ -1,6 +1,8 @@
 #include "camera.h"
 
-#include <SDL.h>
+#if USE_SDL
+  #include <SDL.h>
+#endif
 
 #include <glm/gtx/transform.hpp>
 
@@ -10,6 +12,7 @@ using glm::mat4;
 
 void Camera::Update(float deltaSeconds)
 {
+#if USE_SDL
   const float CameraMovementSpeed = 3.0f;
   const float CameraTurnSpeed = 0.5f;
 
@@ -63,4 +66,5 @@ void Camera::Update(float deltaSeconds)
     rotationMatrix = mat4();
     position = vec3(0.0f, 0.0f, 0.0f);
   }
+#endif
 }

@@ -2,6 +2,7 @@
 #define  MESHFACTORY_H
 
 #include <memory>
+#include <string>
 
 #include <glm/glm.hpp>
 
@@ -13,8 +14,16 @@ class Mesh;
 //static functions for handling meshes
 namespace MeshFactory
 {
-  // TODO: Loading of any mesh from a file
-  //shared_ptr<Mesh> LoadFromFile() { return nullptr; }
+  // enumeration of all mesh filetypes
+  enum MeshType
+  {
+    OBJ = 0,
+
+    UNKOWN = 255
+  };
+
+  //returns the mesh from a number of supported file formats
+  shared_ptr<Mesh> LoadFromFile(const std::string& filepath);
 
   // A set of primatives for reuse
 

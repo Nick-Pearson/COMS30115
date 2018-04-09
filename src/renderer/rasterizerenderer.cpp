@@ -1,135 +1,221 @@
 #include "rasterizerenderer.h"
 
-#include "../mesh/mesh.h"
-#include "../scene/scene.h"
-#include "../scene/camera.h"
-#include "../amath.h"
-#include "../light/light.h"
-#include "../material/material.h"
-#include "antialiasing.h"
-
-#include <vector>
-
-#include <glm/gtx/transform.hpp>
+#include "rasterizerenderer.inl"
 
 void RasterizeRenderer::Draw(const Scene* scene)
-{
-  mat4 cameraMatrix = glm::translate(glm::transpose(scene->camera->rotationMatrix), -scene->camera->position);
-  float focalLength = screenptr->width / (2.0f * tan(scene->camera->FOV / TWO_PI));
-
-  const std::vector<std::shared_ptr<Mesh>>* Meshes = scene->GetMeshes();
-
-  for (const std::shared_ptr<Mesh> mesh : *Meshes)
-  {
-    int V = mesh->Verticies.size();
-    int T = mesh->Triangles.size();
-
-	  struct ProjectedVert
-	  {
-		  float invdepth;
-		  glm::ivec2 position;
-	  };
-    std::vector<ProjectedVert> projectedVerts(V);
-
-    for(int i = 0; i < V; ++i)
-    {
-	    projectedVerts[i].invdepth = 1.0f / VertexShader(cameraMatrix, focalLength, glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
-    }
-
-    for(int i = 0; i < T; ++i)
-    {
-      const Triangle& Tri = mesh->Triangles[i];
-
-      // if the entire triangle is behind the camera we can skip it
-      if(projectedVerts[Tri.v0].invdepth < 0.0f &&
-        projectedVerts[Tri.v1].invdepth < 0.0f &&
-        projectedVerts[Tri.v2].invdepth < 0.0f)
-        continue;
-
-      const glm::ivec2& v0 = projectedVerts[Tri.v0].position;
-      const glm::ivec2& v1 = projectedVerts[Tri.v1].position;
-      const glm::ivec2& v2 = projectedVerts[Tri.v2].position;
-
-      // coordinates of the triangle
-      glm::ivec2 triMin, triMax;
-      triMin.x = std::max(std::min(std::min(v0.x, v1.x), v2.x), 0);
-      triMin.y = std::max(std::min(std::min(v0.y, v1.y), v2.y), 0);
-      triMax.x = std::min(std::max(std::max(v0.x, v1.x), v2.x), screenptr->width-1);
-      triMax.y = std::min(std::max(std::max(v0.y, v1.y), v2.y), screenptr->height-1);
-
-      auto edgeFunction = [](const glm::vec2& v0, const glm::vec2& v1, const glm::vec2& p)
-      {
-        return (p.x - v0.x) * (v1.y - v0.y) - (p.y - v0.y) * (v1.x - v0.x);
-      };
-
-      const float area = edgeFunction(glm::vec2(v1), glm::vec2(v0), glm::vec2(v2));
-
-      #pragma omp parallel for
-	    for (int y = triMin.y; y <= triMax.y; ++y)
-	    {
-		    for (int x = triMin.x; x <= triMax.x; ++x)
-		    {
-          const glm::vec2 p(x, y);
-
-          float w1 = edgeFunction(glm::vec2(v0), glm::vec2(v2), p);
-          float w0 = edgeFunction(glm::vec2(v2), glm::vec2(v1), p);
-          float w2 = edgeFunction(glm::vec2(v1), glm::vec2(v0), p);
-
-          //check if this point is within the triangle
-          if(w0 < 0.0f || w1 < 0.0f || w2 < 0.0f)
-            continue;
-
-          w0 /= area;
-          w1 /= area;
-          w2 /= area;
-
-          const float depth = (projectedVerts[Tri.v0].invdepth * w0) + (projectedVerts[Tri.v1].invdepth * w1) + (projectedVerts[Tri.v2].invdepth * w2);
-
-          if(GetDepthSDL(screenptr, x, y) > depth)
-            continue;
-
-          PutDepthSDL(screenptr, x, y, depth);
-
-          Vertex Vert = (mesh->Verticies[Tri.v0] * w0) + (mesh->Verticies[Tri.v1] * w1) + (mesh->Verticies[Tri.v2] * w2);
-			    PutFloatPixelSDL(screenptr, x, y, PixelShader(scene, mesh->material, Tri, Vert));
-          //PutPixelSDL(screenptr, x, y, glm::vec3(100.0f, 100.0f, 100.0f) * clamp(depth, 0.0f, 2.55f));
-		    }
-	    }
-    }
-  }
-
-  for (int y = 0; y < screenptr->height; y++)
-  {
-    for (int x = 0; x < screenptr->width; x++)
-    {
-      vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenptr->width, screenptr->height);
-      PutPixelSDL(screenptr, x, y, colour);
-    }
-  }
-}
-
-
-float RasterizeRenderer::VertexShader(const glm::mat4& view, float focalLength, const glm::vec4& v, glm::ivec2& outProjPos) const
-{
-  glm::vec4 transformedV = view * v;
-
-  outProjPos.x = (int)(focalLength * transformedV.x / transformedV.z) + (screenptr->width * 0.5f);
-  outProjPos.y = (int)(focalLength * transformedV.y / transformedV.z) + (screenptr->height * 0.5f);
-  return transformedV.z;
-}
-
-glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Material> material, const Triangle& Tri, const Vertex& Vertex) const
 {
   const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
   glm::vec3 colour(0.0f, 0.0f, 0.0f);
 
   for (const std::shared_ptr<Light> light : *Lights)
   {
-    glm::vec3 brdf = material->CalculateBRDF(scene->camera->position - Vertex.position, glm::normalize(light->GetLightDirection(Vertex.position)), Tri.normal, Tri.colour);
-    colour += brdf * light->CalculateLightAtLocation(Vertex.position);
+    if (light->CastsShadows())
+      light->UpdateShadowMap(scene);
+  }
+
+#if 0 // clear the screen to white to help debugging
+  for (int y = 0; y < screenptr->height; y++)
+  {
+    for (int x = 0; x < screenptr->width; x++)
+    {
+      screenptr->PutFloatPixel(x,y,glm::vec3(1.0f, 1.0f, 1.0f));
+    }
+  }
+#endif
+
+
+  RasterizeScene(scene, scene->camera, screenptr);
+
+  for (int y = 0; y < screenptr->height; y++)
+  {
+    for (int x = 0; x < screenptr->width; x++)
+    {
+      //vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
+      vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width + x]);
+      //vec3 colour = glm::vec3(100.0f, 100.0f, 100.0f) * clamp(screenptr->floatBuffer[y*screenptr->width + x].w, 0.0f, 2.55f);
+      screenptr->PutPixel(x, y, colour);
+    }
+  }
+}
+
+
+float RasterizeRenderer::VertexShader(const glm::mat4& view, const glm::mat4& projection, const glm::vec4& v, glm::vec4& outProjPos)
+{
+  glm::vec4 transformedV = view * v;
+
+  outProjPos = transformedV * projection;
+  return transformedV.z;
+}
+
+glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Material> material, const Triangle& Tri, const Vertex& Vertex)
+{
+  const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
+  glm::vec3 colour(0.0f, 0.0f, 0.0f);
+
+  for (const std::shared_ptr<Light> light : *Lights)
+  {
+    float shadowMultiplier = 1.0f;
+    if(light->CastsShadows() && light->EvaluateShadowMap(Vertex.position))
+      shadowMultiplier = 0.2f;
+
+    glm::vec3 brdf = material->CalculateBRDF(scene->camera->position - Vertex.position, glm::normalize(light->GetLightDirection(Vertex.position)), Tri.normal);
+    colour += shadowMultiplier * brdf * light->CalculateLightAtLocation(Vertex.position);
   }
 
   return colour;
+}
+
+// the Windows c++ optimizer somehow breaks this function, having optimisation disabled fixes it
+#pragma optimize("", off)
+void RasterizeRenderer::ClipTriangle(std::vector<Triangle>& inoutTriangles, std::vector<ProjectedVert>& inoutVertexPositions, std::vector<Vertex>& inoutVertexData)
+{
+  ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::W);
+  ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::X);
+  ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Y);
+  //ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Z);
+}
+#pragma optimize("", on)
+
+void RasterizeRenderer::ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles, std::vector<ProjectedVert>& inoutVertexPositions, std::vector<Vertex>& inoutVertexData, Axis axis)
+{
+  const float W_CLIPPING_PLANE = 0.001f;
+  const int i_axis = (int)axis;
+
+  for (int sign = 1; sign >= -1; sign -= 2)
+  {
+    // count backwards so that we only process each triangle once even if they are removed from the list during iteration
+    for (int tidx = inoutTriangles.size() - 1; tidx >= 0; --tidx)
+    {
+      const Triangle& Tri = inoutTriangles[tidx];
+
+      // true if the vertex is within the viewing frustum
+      bool dot[3];
+
+      if (axis == Axis::W)
+      {
+        dot[0] = inoutVertexPositions[Tri.v0].position.w < W_CLIPPING_PLANE;
+        dot[1] = inoutVertexPositions[Tri.v1].position.w < W_CLIPPING_PLANE;
+        dot[2] = inoutVertexPositions[Tri.v2].position.w < W_CLIPPING_PLANE;
+      }
+      else
+      {
+        dot[0] = sign * inoutVertexPositions[Tri.v0].position[i_axis] >= inoutVertexPositions[Tri.v0].position.w;
+        dot[1] = sign * inoutVertexPositions[Tri.v1].position[i_axis] >= inoutVertexPositions[Tri.v1].position.w;
+        dot[2] = sign * inoutVertexPositions[Tri.v2].position[i_axis] >= inoutVertexPositions[Tri.v2].position.w;
+      }
+
+      const int numValidVerts = (int)dot[0] + (int)dot[1] + (int)dot[2];
+
+      //no vertices are within the viewing area - discard the triangle
+      if (numValidVerts == 0)
+      {
+        Misc::RemoveSwap(inoutTriangles, tidx);
+        continue;
+      }
+      else if (numValidVerts == 3)
+      {
+        continue;
+      }
+
+      // deal with the case where there are 2 out of bounds values first as this can be done without building a new triangle
+      if (numValidVerts == 1)
+      {
+        const int validVertIdx = dot[0] ? Tri.v0 : (dot[1] ? Tri.v1 : Tri.v2);
+
+        for (int vidx = 0; vidx < 3; ++vidx)
+        {
+          // no need to interpolate the valid vert
+          if (vidx == validVertIdx) continue;
+
+          ClipLine(inoutVertexPositions[validVertIdx], inoutVertexData[validVertIdx], inoutVertexPositions[vidx], inoutVertexData[vidx], axis, sign);
+        }
+
+        continue;
+      }
+
+      //finally, if there is only one out of bounds vertex we must build a new triangle with the two new values
+      int invalidVert = !dot[0] ? Tri.v0 : (!dot[1] ? Tri.v1 : Tri.v2);
+      int validVert0 = dot[0] ? Tri.v0 : Tri.v1;
+      int validVert1 = dot[2] ? Tri.v2 : Tri.v1;
+
+      // add the new triangle
+      int newVert = inoutVertexPositions.size();
+      inoutVertexPositions.push_back(inoutVertexPositions[invalidVert]);
+      inoutVertexData.push_back(inoutVertexData[invalidVert]);
+
+      Triangle newTriangle(validVert1, invalidVert, newVert);
+
+      if (invalidVert != Tri.v1)
+      {
+        newTriangle.v0 = invalidVert;
+        newTriangle.v1 = validVert1;
+      }
+
+      newTriangle.normal = Tri.normal;
+      inoutTriangles.push_back(newTriangle);
+
+      ClipLine(inoutVertexPositions[validVert0], inoutVertexData[validVert0], inoutVertexPositions[invalidVert], inoutVertexData[invalidVert], axis, sign);
+      ClipLine(inoutVertexPositions[validVert1], inoutVertexData[validVert1], inoutVertexPositions[newVert], inoutVertexData[newVert], axis, sign);
+    }
+
+    if (axis == Axis::W)
+      break;
+  }
+}
+
+void RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Data, ProjectedVert& v1Pos, Vertex& v1Data, Axis axis, int sign)
+{
+  const float W_CLIPPING_PLANE = 0.001f;
+  float intersectionFactor;
+
+  // 1. work out the interpolation amount
+  if (axis == Axis::W)
+  {
+    //intersectionFactor = (W_CLIPPING_PLANE - (*previousVertice)[W]) / ((*previousVertice)[W] - (*currentVertice)[W]);
+    intersectionFactor = (W_CLIPPING_PLANE - v0Pos.position.w) / (v0Pos.position.w - v1Pos.position.w);
+  }
+  else
+  {
+    const float diffValid = v0Pos.position.w - sign*v0Pos.position[(int)axis];
+    const float diff = v1Pos.position.w - sign*v1Pos.position[(int)axis];
+
+    // intersectionFactor =
+    //  ((*previousVertice)[W] - (*previousVertice)[AXIS]) /
+    //  (((*previousVertice)[W] - (*previousVertice)[AXIS]) - ((*currentVertice)[W] - (*currentVertice)[AXIS]));
+    intersectionFactor = diffValid /
+      (diffValid - diff);
+  }
+
+  // 2. work out the new position
+  ProjectedVert newPosition = v1Pos;
+  newPosition -= v0Pos;
+  newPosition *= intersectionFactor;
+  newPosition += v0Pos;
+  v1Pos = newPosition;
+
+  // 3. work out the new vertex attributes
+  Vertex newData = v1Data;
+  newData -= v0Data;
+  newData *= intersectionFactor;
+  newData += v0Data;
+  v1Data = newData;
+}
+
+glm::ivec2 RasterizeRenderer::ConvertHomogeneousCoordinatesToRasterSpace(RenderTarget* target, const glm::vec4& homogeneousCoordinates)
+{
+  glm::vec2 NDCposition(homogeneousCoordinates.x / homogeneousCoordinates.w, homogeneousCoordinates.y / homogeneousCoordinates.w);
+  NDCposition += 1.0f;
+  NDCposition *= 0.5f;
+  NDCposition = 1.0f - NDCposition;
+  NDCposition *= glm::vec2(target->width - 1.0f, target->height - 1.0f);
+
+  return glm::ivec2((int)NDCposition.x, (int)NDCposition.y);
+}
+
+
+glm::mat4 RasterizeRenderer::CreatePerspectiveMatrix(const Camera* camera)
+{
+  return glm::perspective(AMath::ToRads(camera->FOV * 2.0f), 1.0f, camera->nearClipPlane, camera->farClipPlane);
 }
 
 void RasterizeRenderer::DrawLine(const glm::ivec2& a, const glm::ivec2& b, const glm::vec3 colour)
@@ -141,6 +227,6 @@ void RasterizeRenderer::DrawLine(const glm::ivec2& a, const glm::ivec2& b, const
   AMath::interpolate(a, b, points);
 
   for (int i = 0; i < points.size(); ++i) {
-      PutPixelSDL(screenptr, points[i].x, points[i].y, colour);
+    screenptr->PutPixel(points[i].x, points[i].y, colour);
   }
 }
