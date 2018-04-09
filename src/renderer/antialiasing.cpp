@@ -8,39 +8,74 @@ using namespace std;
 const float EDGE_THRESHOLD_MIN = 0.0312;
 const float EDGE_THRESHOLD_MAX = 0.125;
 
-vec3 performAntiAliasing(vec4 *screen, int x, int y, int width, int height, vec4 colour)
+#define FXAA_REDUCE_MUL   (1.0 / 8.0)
+#define FXAA_REDUCE_MIN   (1.0/ 128.0)
+#define FXAA_SPAN_MAX     8.0
+
+
+vec3 performAntiAliasing(vec4 *screen, int x, int y, int width, int height)
 {
-  vec3 colorCenter = vec3(colour);
 
-  // Luma at the current fragment
-  float lumaCenter = rgb2luma(colorCenter);
+  vec3 rgbM = colourAtPosition(screen, x, y, width, height, ivec2(0, 0));
+  vec3 rgbNW = colourAtPosition(screen, x, y, width, height, ivec2(-1, -1));
+  vec3 rgbNE = colourAtPosition(screen, x, y, width, height, ivec2(1, -1));
+  vec3 rgbSW = colourAtPosition(screen, x, y, width, height, ivec2(-1, 1));
+  vec3 rgbSE = colourAtPosition(screen, x, y, width, height, ivec2(1, 1));
 
-  // Luma at the four direct neighbours of the current fragment.
-  // TODO: Optimise access
+  // Convert from RGB to luma.
+  float lumaNW = rgb2luma(rgbNW);
+  float lumaNE = rgb2luma(rgbNE);
+  float lumaSW = rgb2luma(rgbSW);
+  float lumaSE = rgb2luma(rgbSE);
+  float lumaM = rgb2luma(rgbM);
 
-  vec3 yDownColour = colourAtPosition(screen, x, y, width, height, ivec2(0, -1));
-  vec3 yUpColour = colourAtPosition(screen, x, y, width, height, ivec2(0, 1));
-  vec3 xLeftColour = colourAtPosition(screen, x, y, width, height, ivec2(-1, 0));
-  vec3 xRightColour = colourAtPosition(screen, x, y, width, height, ivec2(1, 0));
+  // Gather minimum and maximum luma.
+  float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+  float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
 
-  float lumaDown = rgb2luma(yDownColour);
-  float lumaUp = rgb2luma(yUpColour);
-  float lumaLeft = rgb2luma(xLeftColour);
-  float lumaRight = rgb2luma(xRightColour);
-
-  // Find the maximum and minimum luma around the current fragment.
-  float lumaMin = min(lumaCenter, min( min(lumaDown,lumaUp), min(lumaLeft,lumaRight)));
-  float lumaMax = max(lumaCenter, max( max(lumaDown,lumaUp), max(lumaLeft,lumaRight)));
-
-  // Compute the delta.
-  float lumaRange = lumaMax - lumaMin;
-
-  // If the luma variation is lower that a threshold (or if we are in a really dark area), we are not on an edge, don't perform any AA.
-  if(lumaRange < max(EDGE_THRESHOLD_MIN,lumaMax*EDGE_THRESHOLD_MAX)){
-      return colorCenter;
+  if (lumaMax - lumaMin < lumaMax * EDGE_THRESHOLD_MAX) {
+    return rgbM;
   }
 
-  return vec3(255, 255, 255);
+  // Sampling is done along the gradient.
+  vec2 samplingDirection;
+  samplingDirection.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+  samplingDirection.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+
+  // Sampling step distance depends on the luma: The brighter the sampled texels, the smaller the final sampling step direction.
+  // This results, that brighter areas are less blurred/more sharper than dark areas.
+  float samplingDirectionReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) * 0.25f * FXAA_REDUCE_MUL, FXAA_REDUCE_MIN);
+
+  // Factor for norming the sampling direction plus adding the brightness influence.
+  float minSamplingDirectionFactor = 1.0f / (min(abs(samplingDirection[0]), abs(samplingDirection[1])) + samplingDirectionReduce);
+
+  samplingDirection = min(vec2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
+            max(vec2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
+            samplingDirection * minSamplingDirectionFactor)) * vec2(1.0f / width, 1.0f / height);
+
+  vec2 position = vec2(x, y);
+  vec2 posA = position + samplingDirection * (1.0f/3.0f - 0.5f);
+  vec2 posB = position + samplingDirection * (2.0f/3.0f - 0.5f);
+  vec3 rgbSampleNeg = colourAtPosition(screen, posA.x, posA.y, width, height, ivec2(0, 0));
+  vec3 rgbSamplePos = colourAtPosition(screen, posB.x, posB.y, width, height, ivec2(0, 0));
+
+  vec3 rgbSampleA = (rgbSamplePos + rgbSampleNeg) * 0.5f;
+
+  vec2 posC = position + samplingDirection * -0.5f;
+  vec2 posD = position + samplingDirection * 0.5f;
+  vec3 rgbSampleNegOuter = colourAtPosition(screen, posC.x, posC.y, width, height, ivec2(0, 0));
+  vec3 rgbSamplePosOuter = colourAtPosition(screen, posD.x, posD.y, width, height, ivec2(0, 0));
+
+  vec3 rgbSampleB = (rgbSamplePosOuter + rgbSampleNegOuter) * 0.25f + rgbSampleA * 0.5f;
+
+  float lumaSampleTabB = rgb2luma(rgbSampleB);
+
+  if (lumaSampleTabB < lumaMin || lumaSampleTabB > lumaMax)
+  {
+    return rgbSampleA;
+  } else {
+    return rgbSampleB;
+  }
 }
 
 vec3 colourAtPosition(vec4* screen, int x, int y, int width, int height, ivec2 pos) {
