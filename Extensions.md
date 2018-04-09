@@ -5,10 +5,10 @@ _Done:_
 * Simple multithreading
 * Refactor to so that we can compile and run on blue crystal to produce our final results
 * Shadow mapping in rasterizer
+* FXAA anti-aliasing
 
 _In Progress_:
 * Full clipping in rasterizer
-* FXAA anti-aliasing
 * ~~Vertex shading~~
 
 _Planned:_
