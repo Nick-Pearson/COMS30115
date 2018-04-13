@@ -32,6 +32,9 @@ namespace MeshFactory
 
   // returns a cube of 1 unit dimensions
   shared_ptr<Mesh> GetCube(const glm::vec3& colour, const glm::vec3& pos, const glm::vec3& scale);
+
+  //returns a plane of 1 unit dimensions
+  shared_ptr<Mesh> GetPlane();
 };
 
 #endif

@@ -25,26 +25,26 @@ class RasterizeRenderer : public Renderer
   struct ProjectedVert
   {
     // depth value
-    float depth;
+    float invdepth;
 
     // position in homogeneous clip space
     glm::vec4 position;
 
     void operator-=(const ProjectedVert& other)
     {
-      depth -= other.depth;
+      invdepth -= other.invdepth;
       position -= other.position;
     }
 
     void operator*=(float factor)
     {
-      depth *= factor;
+      invdepth *= factor;
       position *= factor;
     }
 
     void operator+=(const ProjectedVert& other)
     {
-      depth += other.depth;
+      invdepth += other.invdepth;
       position += other.position;
     }
   };

@@ -11,7 +11,7 @@ Scene::Scene()
 #if RAYTRACER
 	camera = new Camera(55.0f, glm::vec3(0, 0, -2.4));
 #else
-	camera = new Camera(65.0f, glm::vec3(0, 0, -2.4));
+	camera = new Camera(65.0f, glm::vec3(0, 0, -10.4));
 #endif
 
 	environment = new TextureCubemap("skyboxes/Maskonaive");

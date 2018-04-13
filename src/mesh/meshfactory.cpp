@@ -7,12 +7,7 @@
 #include<cctype>
 #include <fstream>
 
-// TODO: Convert sscanf_s to stringstream functions at some point
-#ifdef _MSC_VER
-  #define SSCANF sscanf_s
-#else
-  #define SSCANF sscanf
-#endif
+#pragma warning(disable:4996)
 
 //private functions for loading files
 shared_ptr<Mesh> LoadOBJFile(std::string path);
@@ -84,19 +79,19 @@ void LoadMTLLib(std::string path, std::vector<std::shared_ptr<Material>>& outMat
     else if (line.substr(0, 2).compare("Ns") == 0)
     {
       float val;
-      if (3 == SSCANF(data.c_str(), "%f", &val))
+      if (3 == sscanf(data.c_str(), "%f", &val))
         curMaterial->specularExponent = val;
     }
     else if (line.substr(0, 2).compare("Kd") == 0)
     {
       float r,g,b;
-      if (3 == SSCANF(data.c_str(), "%f %f %f", &r, &g, &b))
+      if (3 == sscanf(data.c_str(), "%f %f %f", &r, &g, &b))
         curMaterial->diffuse = glm::vec3(r,g,b);
     }
     else if (line.substr(0, 2).compare("Ks") == 0)
     {
       float r, g, b;
-      if (3 == SSCANF(data.c_str(), "%f %f %f", &r, &g, &b))
+      if (3 == sscanf(data.c_str(), "%f %f %f", &r, &g, &b))
         curMaterial->specular = glm::vec3(r, g, b);
     }
 
@@ -152,7 +147,7 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
       if(data.size() != 0 && data[0] == 'n')
       {
         float x, y, z;
-        if (3 != SSCANF(data.c_str() + 2, "%f %f %f", &x, &y, &z))
+        if (3 != sscanf(data.c_str() + 2, "%f %f %f", &x, &y, &z))
         {
           std::cout << "Corrupt OBJ file vertex normal '" << data << "'" << std::endl;
           return nullptr;
@@ -163,7 +158,7 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
       else
       {
         float x, y, z;
-        if (3 != SSCANF(data.c_str(), "%f %f %f", &x, &y, &z))
+        if (3 != sscanf(data.c_str(), "%f %f %f", &x, &y, &z))
         {
           std::cout << "Corrupt OBJ file vertex '" << data << "'" << std::endl;
           return nullptr;
@@ -178,10 +173,10 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
       int uv0 = -1, uv1 = -1, uv2 = -1; // texture coordinate indices
       int vn0 = -1, vn1 = -1, vn2 = -1; // vertex normal indices
 
-      if(3 != SSCANF(data.c_str(), "%d %d %d", &v0, &v1, &v2) &&
-          6 != SSCANF(data.c_str(), "%d/%d %d/%d %d/%d", &v0, &uv0, &v1, &uv1, &v2, &uv2) &&
-          6 != SSCANF(data.c_str(), "%d//%d %d//%d %d//%d", &v0, &vn0, &v1, &vn1, &v2, &vn2) &&
-          9 != SSCANF(data.c_str(), "%d/%d/%d %d/%d/%d %d/%d/%d", &v0, &uv0, &vn0, &v1, &uv1, &vn1, &v2, &uv2, &vn2))
+      if(3 != sscanf(data.c_str(), "%d %d %d", &v0, &v1, &v2) &&
+          6 != sscanf(data.c_str(), "%d/%d %d/%d %d/%d", &v0, &uv0, &v1, &uv1, &v2, &uv2) &&
+          6 != sscanf(data.c_str(), "%d//%d %d//%d %d//%d", &v0, &vn0, &v1, &vn1, &v2, &vn2) &&
+          9 != sscanf(data.c_str(), "%d/%d/%d %d/%d/%d %d/%d/%d", &v0, &uv0, &vn0, &v1, &uv1, &vn1, &v2, &uv2, &vn2))
       {
         std::cout << "Corrupt OBJ file face '" << data << "'" << std::endl;
         return nullptr;
@@ -332,6 +327,27 @@ shared_ptr<Mesh> MeshFactory::GetCube(const vec3& colour, const glm::vec3& pos, 
 	  vert.position *= scale;
 	  vert.position += pos;
   }
+
+  return shared_ptr<Mesh>(new Mesh(verts, triangles));
+}
+
+std::shared_ptr<Mesh> MeshFactory::GetPlane()
+{
+  const float min = -0.5f;
+  const float max = 0.5f;
+
+  vector<Vertex> verts;
+  verts.reserve(4);
+
+  verts.push_back(Vertex(vec3(min, 0.0f, min)));
+  verts.push_back(Vertex(vec3(max, 0.0f, min)));
+  verts.push_back(Vertex(vec3(min, 0.0f, min)));
+  verts.push_back(Vertex(vec3(max, 0.0f, min)));
+
+  vector<Triangle> triangles;
+  triangles.reserve(2);
+
+  AddQuad(1, 0, 3, 2, triangles);
 
   return shared_ptr<Mesh>(new Mesh(verts, triangles));
 }

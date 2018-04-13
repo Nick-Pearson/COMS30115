@@ -27,14 +27,14 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
     size_t T = mesh->Triangles.size();
     std::vector<ProjectedVert> projectedVerts(V);
 
-    for (int i = 0; i < V; ++i)
+    for (int triIdx = 0; triIdx < V; ++triIdx)
     {
-      projectedVerts[i].depth = VertexShader(cameraMatrix, projection, glm::vec4(mesh->Verticies[i].position, 1.0f), projectedVerts[i].position);
+      projectedVerts[triIdx].invdepth = 1.0f / VertexShader(cameraMatrix, projection, glm::vec4(mesh->Verticies[triIdx].position, 1.0f), projectedVerts[triIdx].position);
     }
 
-    for (int i = 0; i < T; ++i)
+    for (int triIdx = 0; triIdx < T; ++triIdx)
     {
-      std::vector<Triangle> clippedTriangles({ mesh->Triangles[i] });
+      std::vector<Triangle> clippedTriangles({ mesh->Triangles[triIdx] });
 
       std::vector<ProjectedVert> clippedVerticies({
         projectedVerts[clippedTriangles[0].v0],
@@ -58,81 +58,84 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
         const glm::ivec2 v0 = ConvertHomogeneousCoordinatesToRasterSpace(target, clippedVerticies[Tri.v0].position);
         const glm::ivec2 v1 = ConvertHomogeneousCoordinatesToRasterSpace(target, clippedVerticies[Tri.v1].position);
         const glm::ivec2 v2 = ConvertHomogeneousCoordinatesToRasterSpace(target, clippedVerticies[Tri.v2].position);
+        
+        const int maxY = std::max(v0.y, std::max(v1.y, v2.y));
+        const int minY = std::min(v0.y, std::min(v1.y, v2.y));
+        const int rows = 1 + maxY - minY;
 
-        // coordinates of the triangle
-        glm::ivec2 triMin, triMax;
-        triMin.x = std::max(std::min(std::min(v0.x, v1.x), v2.x), 0);
-        triMin.y = std::max(std::min(std::min(v0.y, v1.y), v2.y), 0);
-        triMax.x = std::min(std::max(std::max(v0.x, v1.x), v2.x), target->width - 1);
-        triMax.y = std::min(std::max(std::max(v0.y, v1.y), v2.y), target->height - 1);
+        if (rows == 0) continue;
 
-        auto edgeFunction = [](const glm::vec2& v0, const glm::vec2& v1, const glm::vec2& p)
-        {
-          return (p.x - v0.x) * (v1.y - v0.y) - (p.y - v0.y) * (v1.x - v0.x);
-        };
+        //iterable list of verts and triangle indices
+        const glm::ivec2 verts[3] = { v0, v1, v2 };
+        const int indicies[3] = { Tri.v0, Tri.v1, Tri.v2 };
 
-        const float area = edgeFunction(glm::vec2(v1), glm::vec2(v0), glm::vec2(v2));
+        for (int rowIdx = 0; rowIdx < rows; ++rowIdx)        {
+          const int pixelY = minY + rowIdx;
 
-        if (AMath::isNearlyZero(area))
-          continue;
+          // coordinates for this row
+          int leftPixel = target->width - 1;          int rightPixel = 0;
 
-        for (int y = triMin.y; y <= triMax.y; ++y)
-        {
-          const glm::vec2 p(triMin.x - 1.0f, y);
+          // vertex data at the left and right pixels
+          Vertex leftVertexData, rightVertexData;
+          float leftInvDepth = 0.0f, rightInvDepth = 0.0f;
 
-          // from : https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-practical-implementation
-          // the step of w is constant over the x loop so it only needs to be evaluated once at the start of the loop
-          float w0_cur = edgeFunction(glm::vec2(v2), glm::vec2(v1), p);
-          const float w0_step = v1.y - v2.y;
-
-          float w1_cur = edgeFunction(glm::vec2(v0), glm::vec2(v2), p);
-          const float w1_step = v2.y - v0.y;
-
-          float w2_cur = edgeFunction(glm::vec2(v1), glm::vec2(v0), p);
-          const float w2_step = v0.y - v1.y;
-
-          bool wasValid = false;
-
-          for (int x = triMin.x; x <= triMax.x; ++x)
+          for (int vi = 0; vi < 3; ++vi)
           {
-            // increment our W values
-            w0_cur += w0_step;
-            w1_cur += w1_step;
-            w2_cur += w2_step;
+            glm::ivec2 p0 = verts[vi];
+            glm::ivec2 p1 = verts[(vi + 1) % 3];
 
-            //check if this point is within the triangle
-            if (w0_cur < 0.0f || w1_cur < 0.0f || w2_cur < 0.0f)
+            if (p1.y < p0.y) std::swap(p0, p1);
+
+            //check the Y value is in range for this edge
+            if(pixelY < p0.y || pixelY > p1.y) continue;
+
+            int xVal = p0.x;
+
+            float q = (float)xVal / (float)(1 + p1.x - p0.x);
+
+            // check to prevent divide by zero weirdness
+            if (p1.y != p0.y)
             {
-              // if we have already drawn the triangle on this line then it is impossible for us to draw it again, so break in that case
-              if (!wasValid)
-                continue;
-              else
-                break;
+              // x change for 1 change in y
+              const float slope = ((float)p1.x - (float)p0.x) / ((float)p1.y - (float)p0.y);
+              xVal = (float)p0.x + (slope * (float)(pixelY - p0.y));
+
+              q = (float)(pixelY - p0.y) / ((float)p1.y - (float)p0.y);
             }
 
-            wasValid = true;
+            float invDepth = (clippedVerticies[indicies[vi]].invdepth * (1.0f - q)) + (clippedVerticies[indicies[(vi + 1) % 3]].invdepth * q);
+            Vertex vertexData = (clippedVertexData[indicies[vi]] * clippedVerticies[indicies[vi]].invdepth * (1.0f - q)) +
+              (clippedVertexData[indicies[(vi + 1) % 3]] * clippedVerticies[indicies[(vi + 1) % 3]].invdepth * q);
+            vertexData *= 1.0f / invDepth;
 
-            const float w0 = w0_cur / area;
-            const float w1 = w1_cur / area;
-            const float w2 = w2_cur / area;
-
-            const float invdepth0 = 1.0f / clippedVerticies[Tri.v0].depth;
-            const float invdepth1 = 1.0f / clippedVerticies[Tri.v1].depth;
-            const float invdepth2 = 1.0f / clippedVerticies[Tri.v2].depth;
-
-            const float depth = (invdepth0 * w0) + (invdepth1 * w1) + (invdepth2 * w2);
-
-            if (target->GetDepth(x, y) < depth)
+            if (leftPixel > xVal)
             {
-              target->PutDepth(x, y, depth);
+              leftPixel = xVal;
+              leftInvDepth = invDepth;
+              leftVertexData = vertexData;
+            }
 
-              if (includePixels)
-              {
-                Vertex Vert = (clippedVertexData[Tri.v0] * w0 * invdepth0) + (clippedVertexData[Tri.v1] * w1 * invdepth1) + (clippedVertexData[Tri.v2] * w2 * invdepth2);
-                Vert *= 1.0f / depth;
+            if (rightPixel < xVal)
+            {
+              rightPixel = xVal;
+              rightInvDepth = invDepth;
+              rightVertexData = vertexData;
+            }
+          }
 
-                target->PutFloatPixel(x, y, PixelShader(scene, mesh->GetMaterial(i), Tri, Vert));
-              }
+          // fill the row
+          for (int pixelX = leftPixel; pixelX <= rightPixel; ++pixelX)
+          {
+            float q = (float)pixelX / (float)(1 + rightPixel - leftPixel);
+
+            float invDepth = (leftInvDepth * (1.0f - q)) + (rightInvDepth * q);
+
+            if (includePixels)
+            {
+              Vertex Vert = (leftVertexData * leftInvDepth * (1.0f - q)) + (rightVertexData * rightInvDepth * q);
+              Vert *= 1.0f / invDepth;
+
+              target->PutFloatPixel(pixelX, pixelY, PixelShader(scene, mesh->GetMaterial(triIdx), Tri, Vert));
             }
           }
         }
@@ -140,6 +143,5 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
     }
   }
 }
-
 
 #endif

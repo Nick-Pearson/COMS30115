@@ -13,7 +13,7 @@ void RasterizeRenderer::Draw(const Scene* scene)
       light->UpdateShadowMap(scene);
   }
 
-#if 0 // clear the screen to white to help debugging
+#if 1 // clear the screen to white to help debugging
   for (int y = 0; y < screenptr->height; y++)
   {
     for (int x = 0; x < screenptr->width; x++)
@@ -23,6 +23,9 @@ void RasterizeRenderer::Draw(const Scene* scene)
   }
 #endif
 
+
+  // Early Z test optimisation
+  RasterizeScene<false>(scene, scene->camera, screenptr);
 
   RasterizeScene(scene, scene->camera, screenptr);
 
@@ -71,7 +74,7 @@ void RasterizeRenderer::ClipTriangle(std::vector<Triangle>& inoutTriangles, std:
 {
   ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::W);
   ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::X);
-  ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Y);
+  //ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Y);
   //ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Z);
 }
 #pragma optimize("", on)

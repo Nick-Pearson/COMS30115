@@ -5,6 +5,8 @@
 
 #include "../amath.h"
 
+#pragma warning(disable:4996)
+
 void RenderTarget::SaveImage(const char* filename, bool saveDepth /*= false*/) const
 {
   int filesize = 54 + (3*width*height);
