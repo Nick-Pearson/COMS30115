@@ -18,6 +18,8 @@ namespace AMath
 
   inline bool isNearlyZero(const float val) { return abs(val) < 0.001f;}
 
+  inline bool isNearlyEqual(const float val1, const float val2) { return isNearlyZero(val2 - val1); }
+
   template<typename T>
   inline T clamp(const T& val, const T& min, const T& max) { return val > max ? max : (val < min ? min : val); }
 

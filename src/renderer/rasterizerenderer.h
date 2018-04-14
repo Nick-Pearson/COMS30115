@@ -77,7 +77,7 @@ private:
   static void ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles, std::vector<ProjectedVert>& inoutVertexPositions, std::vector<Vertex>& inoutVertexData, Axis axis);
 
   // This function handles clipping of a single triangle edge where v0 is valid and v1 is invalid
-  static void ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Data, ProjectedVert& v1Pos, Vertex& v1Data, Axis axis, int sign);
+  static bool ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Data, ProjectedVert& v1Pos, Vertex& v1Data, Axis axis, int sign);
 
   //performs the perspective divide to convert homogeneous coords to screen space coords
   static glm::ivec2 ConvertHomogeneousCoordinatesToRasterSpace(RenderTarget* target, const glm::vec4& homogeneousCoordinates);

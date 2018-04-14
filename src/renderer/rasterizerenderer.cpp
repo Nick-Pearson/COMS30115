@@ -74,8 +74,7 @@ void RasterizeRenderer::ClipTriangle(std::vector<Triangle>& inoutTriangles, std:
 {
   ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::W);
   ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::X);
-  //ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Y);
-  //ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Z);
+  ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Y);
 }
 #pragma optimize("", on)
 
@@ -130,7 +129,8 @@ void RasterizeRenderer::ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles
           // no need to interpolate the valid vert
           if (vidx == validVertIdx) continue;
 
-          ClipLine(inoutVertexPositions[validVertIdx], inoutVertexData[validVertIdx], inoutVertexPositions[vidx], inoutVertexData[vidx], axis, sign);
+          if(!ClipLine(inoutVertexPositions[validVertIdx], inoutVertexData[validVertIdx], inoutVertexPositions[vidx], inoutVertexData[vidx], axis, sign))
+            Misc::RemoveSwap(inoutTriangles, tidx);
         }
 
         continue;
@@ -157,8 +157,10 @@ void RasterizeRenderer::ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles
       newTriangle.normal = Tri.normal;
       inoutTriangles.push_back(newTriangle);
 
-      ClipLine(inoutVertexPositions[validVert0], inoutVertexData[validVert0], inoutVertexPositions[invalidVert], inoutVertexData[invalidVert], axis, sign);
-      ClipLine(inoutVertexPositions[validVert1], inoutVertexData[validVert1], inoutVertexPositions[newVert], inoutVertexData[newVert], axis, sign);
+      if(!ClipLine(inoutVertexPositions[validVert0], inoutVertexData[validVert0], inoutVertexPositions[invalidVert], inoutVertexData[invalidVert], axis, sign) || !ClipLine(inoutVertexPositions[validVert1], inoutVertexData[validVert1], inoutVertexPositions[newVert], inoutVertexData[newVert], axis, sign))
+      {
+        Misc::RemoveSwap(inoutTriangles, tidx);
+      }
     }
 
     if (axis == Axis::W)
@@ -166,14 +168,17 @@ void RasterizeRenderer::ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles
   }
 }
 
-void RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Data, ProjectedVert& v1Pos, Vertex& v1Data, Axis axis, int sign)
+bool RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Data, ProjectedVert& v1Pos, Vertex& v1Data, Axis axis, int sign)
 {
   const float W_CLIPPING_PLANE = 0.001f;
-  float intersectionFactor;
+  float intersectionFactor = 0.0f;
 
   // 1. work out the interpolation amount
   if (axis == Axis::W)
   {
+    if(AMath::isNearlyEqual(v0Pos.position.w, v1Pos.position.w))
+      return false;
+
     //intersectionFactor = (W_CLIPPING_PLANE - (*previousVertice)[W]) / ((*previousVertice)[W] - (*currentVertice)[W]);
     intersectionFactor = (W_CLIPPING_PLANE - v0Pos.position.w) / (v0Pos.position.w - v1Pos.position.w);
   }
@@ -181,6 +186,9 @@ void RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Dat
   {
     const float diffValid = v0Pos.position.w - sign*v0Pos.position[(int)axis];
     const float diff = v1Pos.position.w - sign*v1Pos.position[(int)axis];
+
+    if(AMath::isNearlyEqual(diffValid, diff))
+      return false;
 
     // intersectionFactor =
     //  ((*previousVertice)[W] - (*previousVertice)[AXIS]) /
@@ -202,6 +210,8 @@ void RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Dat
   newData *= intersectionFactor;
   newData += v0Data;
   v1Data = newData;
+
+  return true;
 }
 
 glm::ivec2 RasterizeRenderer::ConvertHomogeneousCoordinatesToRasterSpace(RenderTarget* target, const glm::vec4& homogeneousCoordinates)
