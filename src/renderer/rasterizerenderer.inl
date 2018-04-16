@@ -34,17 +34,27 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
 
     for (int triIdx = 0; triIdx < T; ++triIdx)
     {
+      Triangle& triangle = mesh->Triangles[triIdx];
+
+      //backface culling
+      const glm::vec3 trianglePos = (mesh->Verticies[triangle.v0].position + mesh->Verticies[triangle.v1].position + mesh->Verticies[triangle.v2].position) / 3.0f;
+      const glm::vec3 cameraVector = trianglePos - camera->position;
+      if (glm::dot(triangle.normal, cameraVector) >= 0.0f)
+      {
+        continue;
+      }
+
       std::vector<Triangle> clippedTriangles({ mesh->Triangles[triIdx] });
 
       std::vector<ProjectedVert> clippedVerticies({
-        projectedVerts[clippedTriangles[0].v0],
-        projectedVerts[clippedTriangles[0].v1],
-        projectedVerts[clippedTriangles[0].v2] });
+        projectedVerts[triangle.v0],
+        projectedVerts[triangle.v1],
+        projectedVerts[triangle.v2] });
 
       std::vector<Vertex> clippedVertexData({
-        mesh->Verticies[clippedTriangles[0].v0],
-        mesh->Verticies[clippedTriangles[0].v1],
-        mesh->Verticies[clippedTriangles[0].v2] });
+        mesh->Verticies[triangle.v0],
+        mesh->Verticies[triangle.v1],
+        mesh->Verticies[triangle.v2] });
 
       // remap the indexes to be relative to the new coordinate list we have constructed
       clippedTriangles[0].v0 = 0;
@@ -69,13 +79,15 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
         const glm::ivec2 verts[3] = { v0, v1, v2 };
         const int indicies[3] = { Tri.v0, Tri.v1, Tri.v2 };
 
-        for (int rowIdx = (minY < 0 ? -minY : 0); rowIdx < rows; ++rowIdx)        {
+        for (int rowIdx = (minY < 0 ? -minY : 0); rowIdx < rows; ++rowIdx)
+        {
           const int pixelY = minY + rowIdx;
           if(pixelY >= target->width)
             break;
 
           // coordinates for this row
-          int leftPixel = target->width - 1;          int rightPixel = 0;
+          int leftPixel = target->width - 1;
+          int rightPixel = 0;
 
           // vertex data at the left and right pixels
           Vertex leftVertexData, rightVertexData;
@@ -122,14 +134,14 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
               (clippedVertexData[idx2] * clippedVerticies[idx2].invdepth * q);
             vertexData *= 1.0f / invDepth;
 
-            if (leftPixel > xVal)
+            if (leftPixel > xVal && xVal >= 0)
             {
               leftPixel = xVal;
               leftInvDepth = invDepth;
               leftVertexData = vertexData;
             }
 
-            if (rightPixel < xVal)
+            if (rightPixel < xVal && xVal < target->width)
             {
               rightPixel = xVal;
               rightInvDepth = invDepth;
@@ -143,9 +155,6 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
             float q = (float)(pixelX - leftPixel) / (float)(1 + rightPixel - leftPixel);
 
             float invDepth = (leftInvDepth * (1.0f - q)) + (rightInvDepth * q);
-
-            if(pixelY > 719)
-              std::cout << "2. " << pixelY << ", " << minY << ", " << rowIdx << std::endl;
 
             if (target->GetDepth(pixelX, pixelY) <= invDepth)
             {

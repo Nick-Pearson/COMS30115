@@ -129,37 +129,41 @@ void RasterizeRenderer::ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles
           // no need to interpolate the valid vert
           if (vidx == validVertIdx) continue;
 
-          if(!ClipLine(inoutVertexPositions[validVertIdx], inoutVertexData[validVertIdx], inoutVertexPositions[vidx], inoutVertexData[vidx], axis, sign))
+          if (!ClipLine(inoutVertexPositions[validVertIdx], inoutVertexData[validVertIdx], inoutVertexPositions[vidx], inoutVertexData[vidx], axis, sign))
+          {
             Misc::RemoveSwap(inoutTriangles, tidx);
+          }
+        }
+      }
+      else
+      {
+        //finally, if there is only one out of bounds vertex we must build a new triangle with the two new values
+        int invalidVert = !dot[0] ? Tri.v0 : (!dot[1] ? Tri.v1 : Tri.v2);
+        int validVert0 = dot[0] ? Tri.v0 : Tri.v1;
+        int validVert1 = dot[2] ? Tri.v2 : Tri.v1;
+
+        // add the new triangle
+        int newVert = inoutVertexPositions.size();
+        inoutVertexPositions.push_back(inoutVertexPositions[invalidVert]);
+        inoutVertexData.push_back(inoutVertexData[invalidVert]);
+
+        Triangle newTriangle(validVert1, invalidVert, newVert);
+
+        if (invalidVert != Tri.v1)
+        {
+          newTriangle.v0 = invalidVert;
+          newTriangle.v1 = validVert1;
         }
 
-        continue;
-      }
-
-      //finally, if there is only one out of bounds vertex we must build a new triangle with the two new values
-      int invalidVert = !dot[0] ? Tri.v0 : (!dot[1] ? Tri.v1 : Tri.v2);
-      int validVert0 = dot[0] ? Tri.v0 : Tri.v1;
-      int validVert1 = dot[2] ? Tri.v2 : Tri.v1;
-
-      // add the new triangle
-      int newVert = inoutVertexPositions.size();
-      inoutVertexPositions.push_back(inoutVertexPositions[invalidVert]);
-      inoutVertexData.push_back(inoutVertexData[invalidVert]);
-
-      Triangle newTriangle(validVert1, invalidVert, newVert);
-
-      if (invalidVert != Tri.v1)
-      {
-        newTriangle.v0 = invalidVert;
-        newTriangle.v1 = validVert1;
-      }
-
-      newTriangle.normal = Tri.normal;
-      inoutTriangles.push_back(newTriangle);
-
-      if(!ClipLine(inoutVertexPositions[validVert0], inoutVertexData[validVert0], inoutVertexPositions[invalidVert], inoutVertexData[invalidVert], axis, sign) || !ClipLine(inoutVertexPositions[validVert1], inoutVertexData[validVert1], inoutVertexPositions[newVert], inoutVertexData[newVert], axis, sign))
-      {
-        Misc::RemoveSwap(inoutTriangles, tidx);
+        if (!ClipLine(inoutVertexPositions[validVert0], inoutVertexData[validVert0], inoutVertexPositions[invalidVert], inoutVertexData[invalidVert], axis, sign) || !ClipLine(inoutVertexPositions[validVert1], inoutVertexData[validVert1], inoutVertexPositions[newVert], inoutVertexData[newVert], axis, sign))
+        {
+          Misc::RemoveSwap(inoutTriangles, tidx);
+        }
+        else
+        {
+          newTriangle.normal = Tri.normal;
+          inoutTriangles.push_back(newTriangle);
+        }
       }
     }
 
