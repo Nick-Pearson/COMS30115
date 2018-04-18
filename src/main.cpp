@@ -25,6 +25,8 @@ int main(int argc, char** argv)
   Scene* scene = new Scene;
 
   scene->AddMesh(MeshFactory::LoadFromFile("cornel.obj"));
+  //scene->AddMesh(MeshFactory::GetCornelRoom());
+
 
   std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
   Bunny->Scale(2.5f);
