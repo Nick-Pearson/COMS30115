@@ -33,8 +33,7 @@ void RasterizeRenderer::Draw(const Scene* scene)
   {
     for (int x = 0; x < screenptr->width; x++)
     {
-      //vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
-      vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width + x]);
+      vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenptr->width, screenptr->height);
       //vec3 colour = glm::vec3(100.0f, 100.0f, 100.0f) * clamp(screenptr->floatBuffer[y*screenptr->width + x].w, 0.0f, 2.55f);
       screenptr->PutPixel(x, y, colour);
     }

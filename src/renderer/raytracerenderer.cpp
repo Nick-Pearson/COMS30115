@@ -65,8 +65,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
   {
     for (int x = 0; x < screenWidth; x++)
     {
-      //vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenWidth, screenHeight, screenptr->floatBuffer[y*screenptr->width+x]);
-      vec3 colour = glm::vec3(screenptr->floatBuffer[y*screenptr->width+x]);
+      vec3 colour = performAntiAliasing(screenptr->floatBuffer, x, y, screenptr->width, screenptr->height);
       screenptr->PutPixel(x, y, colour);
     }
   }
