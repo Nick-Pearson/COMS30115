@@ -13,7 +13,7 @@ void RasterizeRenderer::Draw(const Scene* scene)
       light->UpdateShadowMap(scene);
   }
 
-#if 1 // clear the screen to white to help debugging
+#if 0 // clear the screen to white to help debugging
   for (int y = 0; y < screenptr->height; y++)
   {
     for (int x = 0; x < screenptr->width; x++)
@@ -73,8 +73,7 @@ void RasterizeRenderer::ClipTriangle(std::vector<Triangle>& inoutTriangles, std:
 {
   ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::W);
   ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::X);
-  //ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Y);
-  //ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Z);
+  ClipTriangleOnAxis(inoutTriangles, inoutVertexPositions, inoutVertexData, Axis::Y);
 }
 #pragma optimize("", on)
 
@@ -85,6 +84,9 @@ void RasterizeRenderer::ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles
 
   for (int sign = 1; sign >= -1; sign -= 2)
   {
+    if (axis == Axis::W && sign == -1)
+      continue;
+
     // count backwards so that we only process each triangle once even if they are removed from the list during iteration
     for (int tidx = inoutTriangles.size() - 1; tidx >= 0; --tidx)
     {
@@ -107,72 +109,83 @@ void RasterizeRenderer::ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles
       }
 
       const int numValidVerts = (int)dot[0] + (int)dot[1] + (int)dot[2];
+      bool validTriangle = true;
 
       //no vertices are within the viewing area - discard the triangle
       if (numValidVerts == 0)
       {
-        Misc::RemoveSwap(inoutTriangles, tidx);
-        continue;
+        validTriangle = false;
       }
-      else if (numValidVerts == 3)
+      else if (numValidVerts == 1)
       {
-        continue;
-      }
-
-      // deal with the case where there are 2 out of bounds values first as this can be done without building a new triangle
-      if (numValidVerts == 1)
-      {
+        // deal with the case where there are 2 out of bounds values first as this can be done without building a new triangle
         const int validVertIdx = dot[0] ? Tri.v0 : (dot[1] ? Tri.v1 : Tri.v2);
 
+        const int indices[3] = { Tri.v0, Tri.v1, Tri.v2 };
         for (int vidx = 0; vidx < 3; ++vidx)
         {
           // no need to interpolate the valid vert
-          if (vidx == validVertIdx) continue;
+          if (indices[vidx] == validVertIdx) continue;
 
-          ClipLine(inoutVertexPositions[validVertIdx], inoutVertexData[validVertIdx], inoutVertexPositions[vidx], inoutVertexData[vidx], axis, sign);
+          if (!ClipLine(inoutVertexPositions[validVertIdx], inoutVertexData[validVertIdx], inoutVertexPositions[indices[vidx]], inoutVertexData[indices[vidx]], axis, sign))
+          {
+            validTriangle = false;
+          }
         }
-
-        continue;
       }
-
-      //finally, if there is only one out of bounds vertex we must build a new triangle with the two new values
-      int invalidVert = !dot[0] ? Tri.v0 : (!dot[1] ? Tri.v1 : Tri.v2);
-      int validVert0 = dot[0] ? Tri.v0 : Tri.v1;
-      int validVert1 = dot[2] ? Tri.v2 : Tri.v1;
-
-      // add the new triangle
-      int newVert = inoutVertexPositions.size();
-      inoutVertexPositions.push_back(inoutVertexPositions[invalidVert]);
-      inoutVertexData.push_back(inoutVertexData[invalidVert]);
-
-      Triangle newTriangle(validVert1, invalidVert, newVert);
-
-      if (invalidVert != Tri.v1)
+      else if(numValidVerts == 2)
       {
-        newTriangle.v0 = invalidVert;
-        newTriangle.v1 = validVert1;
+        //finally, if there is only one out of bounds vertex we must build a new triangle with the two new values
+        int invalidVert = !dot[0] ? Tri.v0 : (!dot[1] ? Tri.v1 : Tri.v2);
+        int validVert0 = dot[0] ? Tri.v0 : Tri.v1;
+        int validVert1 = dot[2] ? Tri.v2 : Tri.v1;
+
+        // add the new triangle
+        int newVert = inoutVertexPositions.size();
+        inoutVertexPositions.push_back(inoutVertexPositions[invalidVert]);
+        inoutVertexData.push_back(inoutVertexData[invalidVert]);
+
+        if (!ClipLine(inoutVertexPositions[validVert0], inoutVertexData[validVert0], inoutVertexPositions[invalidVert], inoutVertexData[invalidVert], axis, sign) ||
+            !ClipLine(inoutVertexPositions[validVert1], inoutVertexData[validVert1], inoutVertexPositions[newVert], inoutVertexData[newVert], axis, sign))
+        {
+          validTriangle = false;
+        }
+        else
+        {
+          // the new triangle cannot share points with the old one so we must copy data
+          int invalidVertcpy = inoutVertexPositions.size();
+          inoutVertexPositions.push_back(inoutVertexPositions[invalidVert]);
+          inoutVertexData.push_back(inoutVertexData[invalidVert]);
+
+          int validVertcpy = inoutVertexPositions.size();
+          inoutVertexPositions.push_back(inoutVertexPositions[validVert1]);
+          inoutVertexData.push_back(inoutVertexData[validVert1]);
+
+          Triangle newTriangle(invalidVertcpy, validVertcpy, newVert);
+          newTriangle.normal = Tri.normal;
+          inoutTriangles.push_back(newTriangle);
+        }
       }
 
-      newTriangle.normal = Tri.normal;
-      inoutTriangles.push_back(newTriangle);
-
-      ClipLine(inoutVertexPositions[validVert0], inoutVertexData[validVert0], inoutVertexPositions[invalidVert], inoutVertexData[invalidVert], axis, sign);
-      ClipLine(inoutVertexPositions[validVert1], inoutVertexData[validVert1], inoutVertexPositions[newVert], inoutVertexData[newVert], axis, sign);
+      if (!validTriangle)
+      {
+        Misc::RemoveSwap(inoutTriangles, tidx);
+      }
     }
-
-    if (axis == Axis::W)
-      break;
   }
 }
 
-void RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Data, ProjectedVert& v1Pos, Vertex& v1Data, Axis axis, int sign)
+bool RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Data, ProjectedVert& v1Pos, Vertex& v1Data, Axis axis, int sign)
 {
   const float W_CLIPPING_PLANE = 0.001f;
-  float intersectionFactor;
+  float intersectionFactor = 0.0f;
 
   // 1. work out the interpolation amount
   if (axis == Axis::W)
   {
+    if(AMath::isNearlyEqual(v0Pos.position.w, v1Pos.position.w))
+      return false;
+
     //intersectionFactor = (W_CLIPPING_PLANE - (*previousVertice)[W]) / ((*previousVertice)[W] - (*currentVertice)[W]);
     intersectionFactor = (W_CLIPPING_PLANE - v0Pos.position.w) / (v0Pos.position.w - v1Pos.position.w);
   }
@@ -180,6 +193,9 @@ void RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Dat
   {
     const float diffValid = v0Pos.position.w - sign*v0Pos.position[(int)axis];
     const float diff = v1Pos.position.w - sign*v1Pos.position[(int)axis];
+
+    if(AMath::isNearlyEqual(diffValid, diff))
+      return false;
 
     // intersectionFactor =
     //  ((*previousVertice)[W] - (*previousVertice)[AXIS]) /
@@ -193,14 +209,17 @@ void RasterizeRenderer::ClipLine(const ProjectedVert& v0Pos, const Vertex& v0Dat
   newPosition -= v0Pos;
   newPosition *= intersectionFactor;
   newPosition += v0Pos;
-  v1Pos = newPosition;
 
   // 3. work out the new vertex attributes
   Vertex newData = v1Data;
   newData -= v0Data;
   newData *= intersectionFactor;
   newData += v0Data;
+
+  v1Pos = newPosition;
   v1Data = newData;
+
+  return true;
 }
 
 glm::ivec2 RasterizeRenderer::ConvertHomogeneousCoordinatesToRasterSpace(RenderTarget* target, const glm::vec4& homogeneousCoordinates)

@@ -25,6 +25,8 @@ int main(int argc, char** argv)
   Scene* scene = new Scene;
 
   scene->AddMesh(MeshFactory::LoadFromFile("cornel.obj"));
+  //scene->AddMesh(MeshFactory::GetCornelRoom());
+
 
   std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
   Bunny->Scale(2.5f);
@@ -40,7 +42,7 @@ int main(int argc, char** argv)
 
   Renderer* renderer = new RaytraceRenderer;
 #else // RASTERIZER
-  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 50.0f, false, glm::vec3(0, 0, -2.4))));
+  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 50.0f, true, glm::vec3(0, 0, -2.4))));
 
   Renderer* renderer = new RasterizeRenderer;
 #endif
