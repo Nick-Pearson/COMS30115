@@ -13,6 +13,8 @@
 #include "mesh/meshfactory.h"
 #include "light/pointlight.h"
 #include "mesh/mesh.h"
+#include "material/phongmaterial.h"
+#include "surface/sphere.h"
 
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 720
@@ -27,17 +29,25 @@ int main(int argc, char** argv)
   scene->AddMesh(MeshFactory::LoadFromFile("cornel.obj"));
   //scene->AddMesh(MeshFactory::GetCornelRoom());
 
-
   std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
   Bunny->Scale(2.5f);
   Bunny->Translate(glm::vec3(0.4f, 0.1f, -0.3f));
   Bunny->Rotate(glm::vec3(0.0f, 180.0f, 180.0f));
   //scene->AddMesh(Bunny);
 
+  std::shared_ptr<Material> sphereMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), 1.0f, 0.0f));
+  std::shared_ptr<Sphere> sphere = std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.5f, 0.7f, -0.4f), 0.3f, sphereMat));
+  scene->AddSurface(sphere);
 
 #if RAYTRACER
   scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 14.0f, true, glm::vec3(0, -0.5, -0.7))));
-  std::shared_ptr<Mesh> LightPlane = MeshFactory::GetPlane();
+  std::shared_ptr<Mesh> LightPlane = MeshFactory::GetCube();
+  LightPlane->Translate(glm::vec3(0.0f, -1.0f, 0.0f));
+  LightPlane->Scale(glm::vec3(2.0f, 0.01f, 2.0f));
+
+  std::shared_ptr<Material> LightMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, 14.0f));
+  LightPlane->SetMaterial(LightMat);
+
   scene->AddMesh(LightPlane);
 
   Renderer* renderer = new RaytraceRenderer;
@@ -73,7 +83,12 @@ srand(t);
     t = t2;
 #endif
 
-    #if (SINGLE_FRAME || !USE_SDL)
+#if !USE_SDL
+    break;
+#endif
+
+    #if SINGLE_FRAME
+    while (NoQuitMessageSDL()) {}
     break;
     #endif
   }

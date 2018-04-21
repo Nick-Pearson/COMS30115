@@ -73,8 +73,8 @@ std::shared_ptr<Material> Mesh::GetMaterial(int32 triangleIndex) const
 
 void Mesh::SetMaterial(std::shared_ptr<Material> Material)
 {
-  materials.empty();
-  materialIndicies.empty();
+  materials.clear();
+  materialIndicies.clear();
 
   materials.push_back(Material);
 }

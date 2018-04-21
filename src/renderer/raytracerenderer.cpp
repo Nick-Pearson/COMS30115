@@ -23,11 +23,11 @@
 //#define NUM_DIRS 0
 
 // takes around 4 mins for 720x720
-#define MAX_BOUNCES 0
-#define NUM_DIRS 128
+#define MAX_BOUNCES 5
+#define NUM_DIRS 1000
 
-// number of shadows rays to send out
-#define SHADOW_RAYS 1
+// if set to 0 then simple shading is used
+#define USE_GI 0
 
 // takes around 10 secs for 720x720
 //#define MAX_BOUNCES 0
@@ -48,7 +48,6 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
   float focalLength = screenWidth / tan(AMath::ToRads(scene->camera->FOV));
 
-  #pragma omp parallel for schedule(static)
   for (int y = 0; y < screenHeight; y++)
   {
     for (int x = 0; x < screenWidth; x++)
@@ -59,6 +58,10 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
       screenptr->PutFloatPixel(x, y, colour);
     }
+
+#if USE_GI
+    std::cout << "Done row " << y << std::endl;
+#endif
   }
 
   for (int y = 0; y < screenHeight; y++)
@@ -71,6 +74,78 @@ void RaytraceRenderer::Draw(const Scene* scene)
   }
 }
 
+vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const Scene* scene)
+{
+#if USE_GI
+  vec3 totalcolour;
+
+  #pragma omp parallel for
+  for (int i = 0; i < NUM_DIRS; ++i)
+  {
+    Intersection outIntersection;
+    vec3 colour = ShadePoint_Internal(position, dir, scene, MAX_BOUNCES, outIntersection);
+
+    #pragma omp critical
+    totalcolour += colour;
+  }
+
+  return totalcolour / (float)NUM_DIRS;
+#else
+  Intersection intersection;
+  if (!scene->ClosestIntersection(position, dir, intersection))
+    return vec3(0.0f, 0.0f, 0.0f);
+
+  return DirectLight(position, intersection, scene);
+#endif
+}
+
+vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, Intersection& intersection)
+{
+  if (curDepth < 0)
+    return vec3(0.0f, 0.0f, 0.0f);
+
+  if (!scene->ClosestIntersection(position, dir, intersection))
+    return vec3(0.0f, 0.0f, 0.0f);
+
+  std::shared_ptr<Material> mat = intersection.GetMaterial();
+  vec3 light = mat->emissive * glm::vec3(1.0f, 1.0f, 1.0f);
+
+  vec3 indirectLight = vec3(0.0f, 0.0f, 0.0f);
+  vec3 triangleNormal = intersection.GetNormal();
+
+  {
+    // add a random direction of indirect light
+    const float theta1 = (float)rand() * 3.14f / (float)RAND_MAX;
+    const float theta2 = (float)rand() * 3.14f / (float)RAND_MAX;
+    const float theta3 = (float)rand() * 3.14f / (float)RAND_MAX;
+
+    glm::mat4 rotationMatrix;
+    rotationMatrix = glm::rotate(rotationMatrix, theta1, glm::vec3(1.0f, 0.0f, 0.0f));
+    rotationMatrix = glm::rotate(rotationMatrix, theta2, glm::vec3(0.0f, 1.0f, 0.0f));
+    rotationMatrix = glm::rotate(rotationMatrix, theta3, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    const glm::vec3 indir_dir = vec3(vec4(triangleNormal, 1.0f) * rotationMatrix);
+    const float lightFactor = glm::dot(indir_dir, triangleNormal);
+
+    if (lightFactor > 0.0f)
+    {
+      Intersection indIntersection;
+      vec3 indColour = ShadePoint_Internal(intersection.position, indir_dir, scene, curDepth - 1, indIntersection);
+
+      if (indIntersection.isValid())
+      {
+        glm::vec3 brdf = mat->CalculateBRDF(position - intersection.position, glm::normalize(intersection.position - indIntersection.position), indIntersection.GetNormal());
+
+        indirectLight = lightFactor * brdf * indColour * 2.0f;
+      }
+    }
+  }
+
+  light += indirectLight;
+
+  return light;
+}
+
 vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection& intersection, const Scene* scene)
 {
   const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
@@ -78,93 +153,17 @@ vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection&
 
   for (const std::shared_ptr<Light> light : *Lights)
   {
-    float lightContribution = 0.0f;
     vec3 lightDir = light->GetLightDirection(vec3(intersection.position));
 
-    if(light->CastsShadows())
+    Intersection shadowIntersection;
+    if (light->CastsShadows() && scene->ShadowIntersection(intersection.position, lightDir, shadowIntersection))
     {
-      for(int r = 0; r < SHADOW_RAYS; ++r)
-      {
-        vec3 randLightDir = light->GetRandomLightDirection(vec3(intersection.position));
-
-        if(r == 0) //ensure at least one ray goes directly to the light
-          randLightDir = lightDir;
-
-        Intersection shadowIntersection;
-        if (scene->ShadowIntersection(intersection.position, randLightDir, shadowIntersection))
-        {
-          continue;
-        }
-
-        lightContribution += (1.0f / (float)SHADOW_RAYS);
-      }
-    }
-    else
-    {
-      lightContribution = 1.0f;
+      return glm::vec3(0.0f, 0.0f, 0.0f);
     }
 
-    glm::vec3 brdf = intersection.mesh->GetMaterial(intersection.triangleIndex)->CalculateBRDF(src_position - intersection.position, glm::normalize(lightDir), intersection.mesh->Triangles[intersection.triangleIndex].normal);
-    colour += lightContribution * brdf * light->CalculateLightAtLocation(intersection.position);
+    glm::vec3 brdf = intersection.GetMaterial()->CalculateBRDF(src_position - intersection.position, glm::normalize(lightDir), intersection.GetNormal());
+    colour += brdf * light->CalculateLightAtLocation(intersection.position);
   }
 
   return colour;
-}
-
-vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const Scene* scene)
-{
-  Intersection outIntersection;
-  return ShadePoint_Internal(position, dir, scene, MAX_BOUNCES, outIntersection);
-}
-
-vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, Intersection& intersection)
-{
-  //if (!scene->ClosestIntersection(position, dir, intersection))
-  //  return scene->GetEnvironmentColour(dir);
-  if (!scene->ClosestIntersection(position, dir, intersection))
-    return vec3(0.0f, 0.0f, 0.0f);
-
-  vec3 light = DirectLight(position, intersection, scene);
-
-  if(curDepth > 0)
-  {
-    vec3 indirectLight = vec3(0.0f, 0.0f, 0.0f);
-    vec3 triangleNormal = intersection.mesh->Triangles[intersection.triangleIndex].normal;
-
-    for(int i = 0; i < NUM_DIRS; ++i)
-    {
-      // add a random direction of indirect light
-      const float theta1 = (float)rand() * 3.14f / (float)RAND_MAX;
-      const float theta2 = (float)rand() * 3.14f / (float)RAND_MAX;
-      const float theta3 = (float)rand() * 3.14f / (float)RAND_MAX;
-
-      glm::mat4 rotationMatrix;
-      rotationMatrix = glm::rotate(rotationMatrix, theta1, glm::vec3(1.0f, 0.0f, 0.0f));
-      rotationMatrix = glm::rotate(rotationMatrix, theta2, glm::vec3(0.0f, 1.0f, 0.0f));
-      rotationMatrix = glm::rotate(rotationMatrix, theta3, glm::vec3(0.0f, 0.0f, 1.0f));
-
-      const glm::vec3 indir_dir = vec3(vec4(triangleNormal, 1.0f) * rotationMatrix);
-      const float lightFactor = glm::dot(indir_dir, triangleNormal);
-
-  	  if (lightFactor <= 0.0f)
-  		  continue;
-
-	  Intersection indIntersection;
-	  vec3 indColour = ShadePoint_Internal(intersection.position, indir_dir, scene, curDepth - 1, indIntersection);
-	  float distanceFactor = 1.0f;
-	  float directionFactor = 1.0f;
-
-	  if(indIntersection.distance > 0.0f)
-		 distanceFactor = 1.5f / (indIntersection.distance * indIntersection.distance);
-
-	  if (indIntersection.mesh != nullptr)
-		 directionFactor = std::abs(glm::dot(indIntersection.mesh->Triangles[indIntersection.triangleIndex].normal, triangleNormal));
-
-	  indirectLight += lightFactor * directionFactor * indColour * distanceFactor;
-    }
-
-    light += (indirectLight / (float)NUM_DIRS);
-  }
-
-  return light;
 }

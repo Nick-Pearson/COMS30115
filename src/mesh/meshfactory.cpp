@@ -86,7 +86,7 @@ void LoadMTLLib(std::string path, std::vector<std::shared_ptr<Material>>& outMat
     {
       float r,g,b;
       if (3 == sscanf(data.c_str(), "%f %f %f", &r, &g, &b))
-        curMaterial->diffuse = glm::vec3(r,g,b);
+        curMaterial->albedo = glm::vec3(r,g,b);
     }
     else if (line.substr(0, 2).compare("Ks") == 0)
     {
@@ -291,7 +291,7 @@ shared_ptr<Mesh> MeshFactory::GetCornelRoom()
   return shared_ptr<Mesh>(new Mesh(verts, triangles));
 }
 
-shared_ptr<Mesh> MeshFactory::GetCube(const vec3& colour, const glm::vec3& pos, const glm::vec3& scale)
+shared_ptr<Mesh> MeshFactory::GetCube(const glm::vec3& pos /*= glm::vec3(0.0f, 0.0f, 0.0f)*/, const glm::vec3& scale /*= glm::vec3(1.0f, 1.0f, 1.0f)*/)
 {
   vector<Vertex> verts;
   verts.reserve(8);
@@ -331,7 +331,7 @@ shared_ptr<Mesh> MeshFactory::GetCube(const vec3& colour, const glm::vec3& pos, 
   return shared_ptr<Mesh>(new Mesh(verts, triangles));
 }
 
-std::shared_ptr<Mesh> MeshFactory::GetPlane()
+std::shared_ptr<Mesh> MeshFactory::GetPlane(bool twoSided /*= false*/)
 {
   const float min = -0.5f;
   const float max = 0.5f;
@@ -339,15 +339,18 @@ std::shared_ptr<Mesh> MeshFactory::GetPlane()
   vector<Vertex> verts;
   verts.reserve(4);
 
-  verts.push_back(Vertex(vec3(min, 0.0f, min)));
-  verts.push_back(Vertex(vec3(max, 0.0f, min)));
-  verts.push_back(Vertex(vec3(min, 0.0f, min)));
-  verts.push_back(Vertex(vec3(max, 0.0f, min)));
+  verts.push_back(Vertex(vec3(min, min, 0.0f)));
+  verts.push_back(Vertex(vec3(max, min, 0.0f)));
+  verts.push_back(Vertex(vec3(min, max, 0.0f)));
+  verts.push_back(Vertex(vec3(max, max, 0.0f)));
 
   vector<Triangle> triangles;
   triangles.reserve(2);
 
   AddQuad(1, 0, 3, 2, triangles);
+
+  if(twoSided)
+    AddQuad(0, 1, 2, 3, triangles);
 
   return shared_ptr<Mesh>(new Mesh(verts, triangles));
 }

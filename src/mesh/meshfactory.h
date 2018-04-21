@@ -31,10 +31,10 @@ namespace MeshFactory
   shared_ptr<Mesh> GetCornelRoom();
 
   // returns a cube of 1 unit dimensions
-  shared_ptr<Mesh> GetCube(const glm::vec3& colour, const glm::vec3& pos, const glm::vec3& scale);
+  shared_ptr<Mesh> GetCube(const glm::vec3& pos = glm::vec3(0.0f, 0.0f, 0.0f), const glm::vec3& scale = glm::vec3(1.0f, 1.0f, 1.0f));
 
   //returns a plane of 1 unit dimensions
-  shared_ptr<Mesh> GetPlane();
+  shared_ptr<Mesh> GetPlane(bool twoSided = false);
 };
 
 #endif

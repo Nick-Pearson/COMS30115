@@ -9,7 +9,17 @@ class Material
 {
 public:
 
+  Material(const glm::vec3& Albedo, const glm::vec3& Specular = glm::vec3(0.0f, 0.0f, 0.0f), const float Mirror = 0.0f, const float Emissive = 0.0f) :
+    albedo(Albedo), specular(Specular), mirror(Mirror), emissive(Emissive)
+  {}
+
 	virtual glm::vec3 CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& normal) = 0;
+
+
+  glm::vec3 albedo;
+  glm::vec3 specular;
+  float mirror;
+  float emissive;
 };
 
 #endif
