@@ -1,7 +1,7 @@
 #ifndef IMPLICITSURFACE_H
 #define IMPLICITSURFACE_H
 
-#include "..\scene\Scene.h"
+#include "../scene/scene.h"
 
 #include <glm/glm.hpp>
 
