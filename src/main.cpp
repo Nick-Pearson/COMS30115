@@ -35,8 +35,10 @@ int main(int argc, char** argv)
   Bunny->Rotate(glm::vec3(0.0f, 180.0f, 180.0f));
   //scene->AddMesh(Bunny);
 
-  std::shared_ptr<Material> sphereMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), 1.0f, 0.0f));
-  std::shared_ptr<Sphere> sphere = std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.5f, 0.7f, -0.4f), 0.3f, sphereMat));
+  std::shared_ptr<Material> mirrorMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0f, 50.0f));
+  std::shared_ptr<Material> frostyMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 0.6f, 0.0f, 50.0f));
+
+  std::shared_ptr<Sphere> sphere = std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.5f, 0.7f, -0.4f), 0.3f, frostyMat));
   scene->AddSurface(sphere);
 
 #if RAYTRACER

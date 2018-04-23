@@ -6,15 +6,15 @@ _Done:_
 * Refactor to so that we can compile and run on blue crystal to produce our final results
 * Shadow mapping in rasterizer
 * FXAA anti-aliasing
+* Proper global illumination (current implementation is a bit broken)
+* Soft shadows in raytracer (by using multiple shadow rays)
 
 _In Progress_:
 * Full clipping in rasterizer
+* Reflective & Refractive materials in raytracer
 * ~~Vertex shading~~
 
 _Planned:_
-* Soft shadows in raytracer (by using multiple shadow rays)
-* Reflective & Refractive materials in raytracer
-* Proper global illumination (current implementation is a bit broken)
 * Textures / Normal maps
 
 _Other ideas:_

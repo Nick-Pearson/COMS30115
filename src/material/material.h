@@ -15,6 +15,9 @@ public:
 
 	virtual glm::vec3 CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& normal) = 0;
 
+  //returns a reflection ray according to importance sampling for this material
+  glm::vec3 CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& normal) const;
+
 
   glm::vec3 albedo;
   glm::vec3 specular;
