@@ -70,9 +70,13 @@ bool Scene::ShadowIntersection(const vec3& start, const vec3& dir, Intersection&
 	}, firstIntersection, true);
 }
 
-bool Scene::Raymarch(const vec3& start, const vec3& dir, Intersection& closestGeometry) const
+bool Scene::RefractionIntersection(const vec3& start, const vec3& dir, Intersection closestIntersection) const
 {
-	return false;
+	closestIntersection.distance = std::numeric_limits<float>::max();
+
+  return IntersectScene_Internal(start, dir, [&](float t, const Intersection& curIntersection) {
+		return t < curIntersection.distance;
+	}, closestIntersection, false, false);
 }
 
 void Scene::AddSurface(std::shared_ptr<ImplicitSurface> Surface)
@@ -99,7 +103,7 @@ vec3 Scene::GetEnvironmentColour(const vec3& dir) const
 }
 
 template<typename Func>
-bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection /*= false*/) const
+bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection /*= false*/, bool checkBackfaces /*= true*/) const
 {
   dir = glm::normalize(dir);
 
@@ -112,7 +116,7 @@ bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate,
 			Triangle& triangle = mesh->Triangles[i];
 
 			// Dot product optimisation
-			if (glm::dot(triangle.normal, dir) >= 0.0f)
+			if (checkBackfaces && glm::dot(triangle.normal, dir) >= 0.0f)
 			{
 				continue;
 			}
@@ -153,7 +157,7 @@ bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate,
     float t = 0.0f;
     glm::vec3 normal;
     if (!surf->Intersect(start, dir, t, normal)) continue;
-    
+
     if(t < 0.0f || !Predicate(t, const_cast<const Intersection&>(outIntersection)))
       continue;
 

@@ -24,7 +24,7 @@ struct Intersection
 
   Intersection() {}
 
-  Intersection(const vec3& inPosition, float inDist, std::shared_ptr<Mesh> inMesh, int inTriIdx) : 
+  Intersection(const vec3& inPosition, float inDist, std::shared_ptr<Mesh> inMesh, int inTriIdx) :
     position(inPosition), distance(inDist), mesh(inMesh), triangleIndex(inTriIdx)
   {}
 
@@ -54,8 +54,15 @@ public:
 
 	void Update(float DeltaSeconds);
 
+	// returns the closest facing object along the Ray
 	bool ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection) const;
+
+	// returns any intersecting object along the ray
 	bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
+
+	// returns the closest object along the ray with any facing
+	bool RefractionIntersection(const vec3& start, const vec3& dir, Intersection closestIntersection) const;
+
 	bool Raymarch(const vec3& start, const vec3& dir, Intersection& closestGeometry) const;
 
 	void AddMesh(std::shared_ptr<Mesh> mesh) { if(mesh) Meshes.push_back(mesh); }
@@ -81,6 +88,6 @@ private:
 
 	// querys the scene for intersections, will return if the predicate function returns true
 	template<typename Func>
-	bool IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false) const;
+	bool IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false, bool checkBackfaces = true) const;
 };
 #endif

@@ -65,14 +65,17 @@ void RaytraceRenderer::Draw(const Scene* scene)
 
 vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const Scene* scene)
 {
+  Intersection intersection;
+  if (!scene->ClosestIntersection(position, dir, intersection))
+    return vec3(0.0f, 0.0f, 0.0f);
+
 #if USE_GI
   vec3 totalcolour;
 
   #pragma omp parallel for
   for (int i = 0; i < NUM_DIRS; ++i)
   {
-    Intersection outIntersection;
-    vec3 colour = ShadePoint_Internal(position, dir, scene, MAX_BOUNCES, outIntersection);
+    vec3 colour = ShadePoint_Internal(position, dir, scene, MAX_BOUNCES, intersection);
 
     #pragma omp critical
     totalcolour += colour;
@@ -80,20 +83,13 @@ vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const S
 
   return totalcolour / (float)NUM_DIRS;
 #else
-  Intersection intersection;
-  if (!scene->ClosestIntersection(position, dir, intersection))
-    return vec3(0.0f, 0.0f, 0.0f);
-
   return DirectLight(position, intersection, scene);
 #endif
 }
 
-vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, Intersection& intersection)
+vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, const Intersection& intersection)
 {
   if (curDepth < 0)
-    return vec3(0.0f, 0.0f, 0.0f);
-
-  if (!scene->ClosestIntersection(position, dir, intersection))
     return vec3(0.0f, 0.0f, 0.0f);
 
   std::shared_ptr<Material> mat = intersection.GetMaterial();
@@ -111,10 +107,9 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
     if (lightFactor > 0.0f)
     {
       Intersection indIntersection;
-      vec3 indColour = ShadePoint_Internal(intersection.position, indir_dir, scene, curDepth - 1, indIntersection);
-
-      if (indIntersection.isValid())
+      if (scene->ClosestIntersection(intersection.position, indir_dir, indIntersection))
       {
+        vec3 indColour = ShadePoint_Internal(intersection.position, indir_dir, scene, curDepth - 1, indIntersection);
         glm::vec3 brdf = mat->CalculateBRDF(in_ray, glm::normalize(intersection.position - indIntersection.position), indIntersection.GetNormal());
 
         indirectLight = lightFactor * brdf * indColour * 2.0f;
