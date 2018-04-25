@@ -8,16 +8,17 @@ _Done:_
 * FXAA anti-aliasing
 * Proper global illumination (current implementation is a bit broken)
 * Soft shadows in raytracer (by using multiple shadow rays)
+* Textures / Normal maps
+* Reflective & Refractive materials in raytracer
 
 _In Progress_:
 * Full clipping in rasterizer
-* Reflective & Refractive materials in raytracer
 * ~~Vertex shading~~
 
 _Planned:_
-* Textures / Normal maps
 
 _Other ideas:_
+* Importance sampling in Global Illumination
 * Mesh optimisation by reording trigangles/verts [Example Algorithm](https://tomforsyth1000.github.io/papers/fast_vert_cache_opt.html)
 * Frustrum culling (rasteriser)
 * Porting some code to the GPU (preferably using open CL as this allows us direct control of memory movements)

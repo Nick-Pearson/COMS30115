@@ -150,7 +150,7 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
           }
 
           // fill the row
-          for (int pixelX = leftPixel; pixelX <= rightPixel; ++pixelX)
+          for (int pixelX = leftPixel; pixelX < rightPixel; ++pixelX)
           {
             float q = (float)(pixelX - leftPixel) / (float)(1 + rightPixel - leftPixel);
 

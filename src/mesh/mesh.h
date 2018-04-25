@@ -1,3 +1,6 @@
+#ifndef  MESH_H
+#define  MESH_H
+
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -56,14 +59,14 @@ struct Vertex
     return returnValue;
   }
 
-  Vertex operator+(const Vertex& other)
+  Vertex operator+(const Vertex& other) const
   {
     Vertex returnValue = *this;
     returnValue += other;
     return returnValue;
   }
 
-  Vertex operator-(const Vertex& other)
+  Vertex operator-(const Vertex& other) const
   {
     Vertex returnValue = *this;
     returnValue -= other;
@@ -117,6 +120,7 @@ public:
 
   void SetMaterial(std::shared_ptr<Material> Material);
   void SetMaterials(const std::vector<std::shared_ptr<Material>>& Materials, const std::vector<uint8_t>& MaterialIndicies);
+  void SetMaterialOnTriangle(std::shared_ptr<Material> Material, int triangleIdx);
 
 private:
 
@@ -126,3 +130,5 @@ private:
 	void CacheNormals();
 	void CalculateBounds();
 };
+
+#endif // ! MESH_H

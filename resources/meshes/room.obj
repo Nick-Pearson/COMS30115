@@ -1,0 +1,38 @@
+mtllib cornel.mtl
+
+# Room:
+v 1.0 -1.0 -1.0
+vt 0.0 0.0
+v -1.0 -1.0 -1.0
+vt 0.0 0.0
+v 1.0 -1.0 1.0
+vt 0.0 0.0
+v -1.0 -1.0 1.0
+vt 0.0 0.0
+
+v 1.0 1.0 -1.0
+vt 1.0 1.0
+v -1.0 1.0 -1.0
+vt 1.0 0.0
+v 1.0 1.0 1.0
+vt 0.0 1.0
+v -1.0 1.0 1.0
+vt 0.0 0.0
+
+# Room:
+usemtl cornel_White
+f 2 3 1
+f 4 3 2
+usemtl cornel_Green
+f 5 1 3
+f 5 3 7
+usemtl cornel_Red
+f 2 6 4
+f 6 8 4
+usemtl cornel_White
+f 6 5 7
+f 8 6 7
+f 4 7 3
+f 8 7 4
+f 1 5 6
+f 2 1 6

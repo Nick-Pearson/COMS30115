@@ -88,6 +88,33 @@ void Mesh::SetMaterials(const std::vector<std::shared_ptr<Material>>& Materials,
   materialIndicies = MaterialIndicies;
 }
 
+void Mesh::SetMaterialOnTriangle(std::shared_ptr<Material> Material, int triangleIdx)
+{
+  if (materials.size() == 0) return SetMaterial(Material);
+  if (materials.size() == 1 && materials[0] == Material) return;
+
+  // find or add the material
+  int materialIdx;
+  auto it = std::find(materials.begin(), materials.end(), Material);
+  if (it != materials.end())
+  {
+    materialIdx = it - materials.begin();
+  }
+  else
+  {
+    materialIdx = materials.size();
+    materials.push_back(Material);
+  }
+
+  // if we previously had one material, initialize the list
+  if (materialIndicies.size() == 0)
+  {
+    materialIndicies = std::vector<uint8_t>(Triangles.size());
+  }
+
+  materialIndicies[triangleIdx] = materialIdx;
+}
+
 void Mesh::CacheNormals()
 {
 	for (Triangle& tri : Triangles)

@@ -63,7 +63,7 @@ public:
 
 private:
   static float VertexShader(const glm::mat4& view, const glm::mat4& projection, const glm::vec4& v, glm::vec4& outProjPos);
-  static glm::vec3 PixelShader(const Scene* scene, std::shared_ptr<Material> material, const class Triangle& Tri, const struct Vertex& Vertex);
+  static glm::vec3 PixelShader(const Scene* scene, std::shared_ptr<Material> material, const class Triangle& Tri, const struct Vertex& vertexData);
 
   /* Clips the input list of triangles against the specified Axis
    * @param triangles :: inputs a list of triangles to clip, outputs a list of clipped triangles

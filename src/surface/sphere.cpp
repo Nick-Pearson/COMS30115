@@ -21,19 +21,25 @@ bool Sphere::Intersect(const glm::vec3& start, const glm::vec3& dir, float& outD
   float thc = sqrt(radius2 - d2);
 
   float t0 = tca - thc;
+  glm::vec3 n0 = (start + (t0 * dir)) - center;
   float t1 = tca + thc;
+  glm::vec3 n1 = (start + (t1 * dir)) - center;
 
   if (t0 > t1) std::swap(t0, t1);
 
-  if (t0 < 0.0f)
+  if (t0 < 0.0f || 
+    (glm::dot(n0, dir) >= 0.0f))
   {
     t0 = t1;
-    if (t0 < 0.0f)
+    n0 = n1;
+
+    if (t0 < 0.0f || 
+      (glm::dot(n0, dir) >= 0.0f))
       return false;
   }
 
   outDistance = t0;
-  outNormal = glm::normalize((start + (outDistance * dir)) - center);
+  outNormal = glm::normalize(n0);
   return true;
 }
 

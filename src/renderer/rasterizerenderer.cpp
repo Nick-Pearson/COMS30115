@@ -49,7 +49,7 @@ float RasterizeRenderer::VertexShader(const glm::mat4& view, const glm::mat4& pr
   return transformedV.z;
 }
 
-glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Material> material, const Triangle& Tri, const Vertex& Vertex)
+glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Material> material, const Triangle& Tri, const Vertex& vertexData)
 {
   const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
   glm::vec3 colour(0.0f, 0.0f, 0.0f);
@@ -57,11 +57,11 @@ glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Mat
   for (const std::shared_ptr<Light> light : *Lights)
   {
     float shadowMultiplier = 1.0f;
-    if(light->CastsShadows() && light->EvaluateShadowMap(Vertex.position))
+    if(light->CastsShadows() && light->EvaluateShadowMap(vertexData.position))
       shadowMultiplier = 0.2f;
 
-    glm::vec3 brdf = material->CalculateBRDF(scene->camera->position - Vertex.position, glm::normalize(light->GetLightDirection(Vertex.position)), Tri.normal);
-    colour += shadowMultiplier * brdf * light->CalculateLightAtLocation(Vertex.position);
+    glm::vec3 brdf = material->CalculateBRDF(glm::normalize(vertexData.position - scene->camera->position), glm::normalize(light->GetLightDirection(vertexData.position)), Tri.normal, vertexData);
+    colour += shadowMultiplier * brdf * light->CalculateLightAtLocation(vertexData.position);
   }
 
   return colour;

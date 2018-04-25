@@ -17,7 +17,7 @@
 #include <glm/gtx/norm.hpp>
 
 #define MAX_BOUNCES 5
-#define NUM_DIRS 2000
+#define NUM_DIRS 5000
 
 // if set to 0 then simple shading is used
 #define USE_GI 0
@@ -41,10 +41,8 @@ void RaytraceRenderer::Draw(const Scene* scene)
   {
     for (int x = 0; x < screenWidth; x++)
     {
-      vec4 dir = rotationMatrix * vec4(x - sceenWidthHalf, y - screenHeightHalf, focalLength, 1);
-
-      vec3 colour = ShadePoint(cameraPosition, vec3(dir), scene);
-
+      const vec3 dir = glm::normalize(vec3(rotationMatrix * vec4(x - sceenWidthHalf, y - screenHeightHalf, focalLength, 1)));
+      vec3 colour = ShadePoint(cameraPosition, dir, scene);
       screenptr->PutFloatPixel(x, y, colour);
     }
 
@@ -70,50 +68,52 @@ vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const S
     return vec3(0.0f, 0.0f, 0.0f);
 
 #if USE_GI
-  vec3 totalcolour;
+  float r = 0.0f, g = 0.0f, b = 0.0f;
 
-  #pragma omp parallel for
+  #pragma omp parallel for reduction(+:r,g,b)
   for (int i = 0; i < NUM_DIRS; ++i)
   {
-    vec3 colour = ShadePoint_Internal(position, dir, scene, MAX_BOUNCES, intersection);
+    vec3 colour = ShadePoint_Internal(dir, scene, MAX_BOUNCES, intersection);
 
-    #pragma omp critical
-    totalcolour += colour;
+    r = r + colour.x;
+    g = g + colour.y;
+    b = b + colour.z;
   }
 
-  return totalcolour / (float)NUM_DIRS;
+  return glm::vec3(r,g,b) / (float)NUM_DIRS;
 #else
-  return DirectLight(position, intersection, scene);
+  return DirectLight(dir, intersection, scene);
 #endif
 }
 
-vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir, const Scene* scene, int curDepth, const Intersection& intersection)
+vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& dir, const Scene* scene, int curDepth, const Intersection& intersection)
 {
   if (curDepth < 0)
     return vec3(0.0f, 0.0f, 0.0f);
 
   std::shared_ptr<Material> mat = intersection.GetMaterial();
-  vec3 light = mat->emissive * glm::vec3(1.0f, 1.0f, 1.0f);
+
+  if (mat->emissive > 0.0f)
+    return mat->emissive * glm::vec3(1.0f, 1.0f, 1.0f);
+
+  vec3 light(0.0f, 0.0f, 0.0f);
 
   vec3 indirectLight = vec3(0.0f, 0.0f, 0.0f);
-  vec3 triangleNormal = intersection.GetNormal();
+  vec3 normal = intersection.GetNormal();
 
-  glm::vec3 in_ray = glm::normalize(intersection.position - position);
+  glm::vec3 iPosition = intersection.vertexData.position;
 
   {
-    const glm::vec3 indir_dir = mat->CalculateReflectedRay(dir, triangleNormal);
-    const float lightFactor = glm::dot(indir_dir, triangleNormal);
+    const glm::vec3 indir_dir = mat->CalculateReflectedRay(dir, normal);
+    const float lightFactor = abs(glm::dot(indir_dir, normal));
 
-    if (lightFactor > 0.0f)
+    Intersection indIntersection;
+    if (scene->ClosestIntersection(iPosition + (indir_dir * 0.001f), indir_dir, indIntersection))
     {
-      Intersection indIntersection;
-      if (scene->ClosestIntersection(intersection.position, indir_dir, indIntersection))
-      {
-        vec3 indColour = ShadePoint_Internal(intersection.position, indir_dir, scene, curDepth - 1, indIntersection);
-        glm::vec3 brdf = mat->CalculateBRDF(in_ray, glm::normalize(intersection.position - indIntersection.position), indIntersection.GetNormal());
+      vec3 indColour = ShadePoint_Internal(indir_dir, scene, curDepth - 1, indIntersection);
+      glm::vec3 brdf = mat->CalculateBRDF(dir, glm::normalize(iPosition - indIntersection.vertexData.position), indIntersection.GetNormal(), intersection.vertexData);
 
-        indirectLight = lightFactor * brdf * indColour * 2.0f;
-      }
+      indirectLight = lightFactor * brdf * indColour * 2.0f;
     }
   }
 
@@ -122,42 +122,65 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& position, const vec3& dir
   return light;
 }
 
-vec3 RaytraceRenderer::DirectLight(const vec3& src_position, const Intersection& intersection, const Scene* scene, int depth /*= 5*/)
+vec3 RaytraceRenderer::DirectLight(const vec3& in_ray, const Intersection& intersection, const Scene* scene, int depth /*= 5*/)
 {
   std::shared_ptr<Material> mat = intersection.GetMaterial();
 
   const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
   glm::vec3 colour(0.0f, 0.0f, 0.0f);
   glm::vec3 reflColour(0.0f, 0.0f, 0.0f);
+  glm::vec3 refrColour(0.0f, 0.0f, 0.0f);
 
-  glm::vec3 in_ray = glm::normalize(intersection.position - src_position);
+  glm::vec3 iPosition = intersection.vertexData.position;
   glm::vec3 normal = intersection.GetNormal();
 
-  for (const std::shared_ptr<Light> light : *Lights)
+  float refrFactor = mat->transparency;
+
+  if (refrFactor > 0.0f && depth > 0)
   {
-    vec3 lightDir = light->GetLightDirection(vec3(intersection.position));
+    refrFactor *= Material::Fresnel(in_ray, normal, mat->ior);
 
-    Intersection shadowIntersection;
-    if (light->CastsShadows() && scene->ShadowIntersection(intersection.position, lightDir, shadowIntersection))
+    if (refrFactor > 0.0f)
     {
-      return glm::vec3(0.0f, 0.0f, 0.0f);
+      glm::vec3 refractedDir = Material::GetRefractionDir(in_ray, normal, mat->ior);
+      Intersection refrIntersection;
+      if (scene->ClosestIntersection(iPosition + (refractedDir * 0.1f), refractedDir, refrIntersection))
+      {
+        refrColour = DirectLight(refractedDir, refrIntersection, scene, depth - 1);
+      }
     }
-
-    glm::vec3 brdf = mat->CalculateBRDF(in_ray, glm::normalize(lightDir), intersection.GetNormal());
-    colour += brdf * light->CalculateLightAtLocation(intersection.position);
   }
 
+  const float reflFactor = (1.0f - refrFactor) * mat->mirror;
+  const float diffFactor = (1.0f - refrFactor) * (1.0f - mat->mirror);
 
-  if(mat->mirror > 0.0f && depth > 0)
+  if (diffFactor > 0.0f)
+  {
+    for (const std::shared_ptr<Light> light : *Lights)
+    {
+      vec3 lightDir = light->GetLightDirection(iPosition);
+
+      Intersection shadowIntersection;
+      if (light->CastsShadows() && scene->ShadowIntersection(iPosition, lightDir, shadowIntersection))
+      {
+        return glm::vec3(0.0f, 0.0f, 0.0f);
+      }
+
+      glm::vec3 brdf = mat->CalculateBRDF(in_ray, glm::normalize(lightDir), intersection.GetNormal(), intersection.vertexData);
+      colour += brdf * light->CalculateLightAtLocation(iPosition);
+    }
+  }
+
+  if(reflFactor > 0.0f && depth > 0)
   {
     const glm::vec3 reflectedDir = in_ray - (2.0f * glm::dot(in_ray, normal) * normal);
 
     Intersection reflIntersection;
-    if (scene->ClosestIntersection(intersection.position + (reflectedDir * 0.1f), reflectedDir, reflIntersection))
+    if (scene->ClosestIntersection(iPosition + (reflectedDir * 0.1f), reflectedDir, reflIntersection))
     {
-      reflColour = DirectLight(intersection.position, reflIntersection, scene, depth - 1);
+      reflColour = DirectLight(reflectedDir, reflIntersection, scene, depth - 1);
     }
   }
 
-  return (colour * (1.0f - mat->mirror)) + (reflColour * mat->mirror * 0.8f);
+  return (colour * diffFactor) + (reflColour * reflFactor * 0.8f) + (refrColour * refrFactor * 0.8f);
 }

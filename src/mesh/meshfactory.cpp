@@ -114,6 +114,7 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
   line.clear();
 
   vector<Vertex> verts;
+  int textureCoordIdx = 0;
   vector<glm::vec3> vertnormals;
   vector<Triangle> triangles;
 
@@ -154,6 +155,18 @@ shared_ptr<Mesh> LoadOBJFile(std::string path)
         }
 
         vertnormals.push_back(glm::vec3(x, y, z));
+      }
+      else if (data.size() != 0 && line[1] == 't')
+      {
+        float x, y;
+        if (2 != sscanf(data.c_str(), "%f %f", &x, &y))
+        {
+          std::cout << "Corrupt OBJ file vertex texture '" << data << "'" << std::endl;
+          return nullptr;
+        }
+
+        verts[textureCoordIdx].uv0 = glm::vec2(x, y);
+        textureCoordIdx++;
       }
       else
       {

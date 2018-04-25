@@ -9,7 +9,7 @@ class PBRMaterial : public Material
 {
 public:
 
-  glm::vec3 CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& normal) override;
+  glm::vec3 CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& inNormal, const Vertex& vertexData) override;
 
 private:	
 
