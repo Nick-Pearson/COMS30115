@@ -21,8 +21,10 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
 
   const std::vector<std::shared_ptr<Mesh>>* Meshes = scene->GetMeshes();
 
-  for (const std::shared_ptr<Mesh> mesh : *Meshes)
+  for (size_t mIdx = 0; mIdx < Meshes->size(); ++mIdx)
   {
+    const std::shared_ptr<Mesh>& mesh = Meshes->at(mIdx);
+
     size_t V = mesh->Verticies.size();
     size_t T = mesh->Triangles.size();
     std::vector<ProjectedVert> projectedVerts(V);
@@ -79,6 +81,7 @@ void RasterizeRenderer::RasterizeScene(const Scene* scene, const Camera* camera,
         const glm::ivec2 verts[3] = { v0, v1, v2 };
         const int indicies[3] = { Tri.v0, Tri.v1, Tri.v2 };
 
+        // #pragma omp parallel for
         for (int rowIdx = (minY < 0 ? -minY : 0); rowIdx < rows; ++rowIdx)
         {
           const int pixelY = minY + rowIdx;

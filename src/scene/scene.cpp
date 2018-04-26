@@ -1,6 +1,7 @@
 #include "scene.h"
 
 #include "camera.h"
+#include "../misc.h"
 #include "../mesh/mesh.h"
 #include "../texture/texturecubemap.h"
 #include "../surface/implicitsurface.h"
@@ -20,6 +21,21 @@ std::shared_ptr<Material> Intersection::GetMaterial() const
   }
 
   return nullptr;
+}
+
+void Intersection::GetNormals(vec3& outNormal, vec3& outTangent, vec3& outBitangent) const
+{
+  outNormal = GetNormal();
+
+  if (mesh)
+  {
+    outTangent = mesh->Triangles[triangleIndex].tangent;
+    outBitangent = mesh->Triangles[triangleIndex].bitangent;
+    return;
+  }
+
+  Misc::CalcTangentsFromNormal(normal, outTangent, outBitangent);
+  return;
 }
 
 vec3 Intersection::GetNormal() const

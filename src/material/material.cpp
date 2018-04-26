@@ -6,22 +6,25 @@
 
 #include <glm/gtx/transform.hpp>
 
-glm::vec3 Material::CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& inNormal, const Vertex& vertexData) const
+glm::vec3 Material::CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& inNormal, const glm::vec3& tangent, const glm::vec3& bitangent, const Vertex& vertexData) const
 {
-  glm::vec3 normal = GetModifiedNormal(inNormal, vertexData.uv0);
+  const glm::vec3 normal = GetModifiedNormal(inNormal, tangent, bitangent, vertexData.uv0);
+  const glm::vec3 colour = std::max(0.f, glm::dot(normal, light)) * GetAlbedo(vertexData.uv0);
+
+  // early out for non specular materials
+  if (specular == 0.0f)
+    return colour;
 
   // reflected direction L - 2(N . LN)
-  glm::vec3 idealReflectionRay = glm::normalize(light - (2.0f * glm::dot(light, normal) * normal));
-
+  const glm::vec3 idealReflectionRay = glm::normalize(light - (2.0f * glm::dot(light, normal) * normal));
   float spec = std::pow(std::max(0.f, glm::dot(idealReflectionRay, view)), specularExponent) * specular;
-  return (std::max(0.f, glm::dot(normal, light)) * GetAlbedo(vertexData.uv0)) +
-    (spec  * glm::vec3(1.0f, 1.0f, 1.0f));
+  return colour +(spec  * glm::vec3(1.0f, 1.0f, 1.0f));
 }
 
 
-void Material::CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& inNormal, const Vertex& vertexData, glm::vec3& outRay, bool& outIsRefractionRay, float& outImportance) const
+void Material::CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& inNormal, const glm::vec3& tangent, const glm::vec3& bitangent, const Vertex& vertexData, glm::vec3& outRay, bool& outIsRefractionRay, float& outImportance) const
 {
-  glm::vec3 normal = GetModifiedNormal(inNormal, vertexData.uv0);
+  glm::vec3 normal = GetModifiedNormal(inNormal, tangent, bitangent, vertexData.uv0);
 
   outIsRefractionRay = false;
   outImportance = 1.0f;
@@ -69,7 +72,7 @@ void Material::CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& i
   outImportance = std::pow(std::max(0.f, glm::dot(idealReflectionRay, in_ray)), specularExponent) * specular;
 }
 
-glm::vec3 Material::GetModifiedNormal(const glm::vec3& initialNormal, glm::vec2 UV) const
+glm::vec3 Material::GetModifiedNormal(const glm::vec3& initialNormal, const glm::vec3& tangent, const glm::vec3& bitangent, glm::vec2 UV) const
 {
   if (!normalTexture)
     return initialNormal;
@@ -80,24 +83,6 @@ glm::vec3 Material::GetModifiedNormal(const glm::vec3& initialNormal, glm::vec2 
   //values from -1.0 to 1.0 in each component
   glm::vec3 texNormal = (glm::vec3(bytes[0], bytes[1], bytes[2]) * (1.0f / 128.0f)) - 1.0f;
 
-  // super hacky way to find the tangent and bitangent vectors
-  glm::vec3 tangent;
-
-  glm::vec3 c1 = glm::cross(initialNormal, glm::vec3(0.0f, 0.0f, 1.0f));
-  glm::vec3 c2 = glm::cross(initialNormal, glm::vec3(0.0f, 1.0f, 0.0f));
-
-  if (glm::length2(c1) > glm::length2(c2))
-  {
-    tangent = c1;
-  }
-  else
-  {
-    tangent = c2;
-  }
-
-  tangent = glm::normalize(tangent);
-
-  glm::vec3 bitangent = glm::cross(tangent, initialNormal);
   glm::mat3 TBN(tangent, bitangent, initialNormal);
 
   return glm::normalize(TBN * texNormal);

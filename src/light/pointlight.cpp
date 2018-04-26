@@ -69,10 +69,10 @@ void PointLight::UpdateShadowMap(const Scene* scene)
         rotationMatrix = glm::rotate(rotationMatrix, 180.0f, vec3(0.0f, 1.0f, 0.0f));
         break;
       case CubemapDirections::Left:
-        rotationMatrix = glm::rotate(rotationMatrix, 90.0f, vec3(0.0f, -1.0f, 0.0f));
+        rotationMatrix = glm::rotate(rotationMatrix, 90.0f, vec3(0.0f, 1.0f, 0.0f));
         break;
       case CubemapDirections::Right:
-        rotationMatrix = glm::rotate(rotationMatrix, 90.0f, vec3(0.0f, 1.0f, 0.0f));
+        rotationMatrix = glm::rotate(rotationMatrix, 90.0f, vec3(0.0f, -1.0f, 0.0f));
         break;
       }
 

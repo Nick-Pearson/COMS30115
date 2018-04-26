@@ -18,10 +18,10 @@ public:
     albedo(Albedo), specular(Specular), mirror(Mirror), emissive(Emissive), specularExponent(SpecularExponent), transparency(Transparency), ior(IOR)
   {}
 
-	glm::vec3 CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& inNormal, const Vertex& vertexData) const;
+	glm::vec3 CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& inNormal, const glm::vec3& tangent, const glm::vec3& bitangent, const Vertex& vertexData) const;
 
   //returns a reflection ray according to importance sampling for this material
-  void CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& inNormal, const Vertex& vertexData, glm::vec3& outRay, bool& outIsRefractionRay, float& outImportance) const;
+  void CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& inNormal, const glm::vec3& tangent, const glm::vec3& bitangent, const Vertex& vertexData, glm::vec3& outRay, bool& outIsRefractionRay, float& outImportance) const;
 
   inline glm::vec3 GetAlbedo(glm::vec2 UV) const 
   {
@@ -35,7 +35,7 @@ public:
     return albedo;
   }
 
-  glm::vec3 GetModifiedNormal(const glm::vec3& initialNormal, glm::vec2 UV) const;
+  glm::vec3 GetModifiedNormal(const glm::vec3& initialNormal, const glm::vec3& tangent, const glm::vec3& bitangent, glm::vec2 UV) const;
 public:
 
   glm::vec3 albedo;

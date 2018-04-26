@@ -18,8 +18,8 @@
 #include "texture/texture.h"
 #include "structs/KDTree.h"
 
-#define SCREEN_WIDTH 720
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 1024
+#define SCREEN_HEIGHT 1024
 #define SINGLE_FRAME 0
 
 void Update(float deltaMilliseconds);
@@ -40,12 +40,7 @@ int main(int argc, char** argv)
   scene->AddMesh(MeshFactory::LoadFromFile("box1.obj"));
   scene->AddMesh(MeshFactory::LoadFromFile("box2.obj"));
 
-  std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
-  Bunny->Scale(2.5f);
-  Bunny->Translate(glm::vec3(0.4f, 0.1f, -0.3f));
-  Bunny->Rotate(glm::vec3(0.0f, 180.0f, 180.0f));
-  scene->AddMesh(Bunny);
-
+#if RAYTRACER
   std::shared_ptr<Material> mirrorMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 1.0f, 0.0f, 50.0f));
   std::shared_ptr<Material> frostyMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.4f, 0.0f, 50.0f));
   std::shared_ptr<Material> glassMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0f, 0.0f, 10.0f, 1.0f, 1.7f));
@@ -53,6 +48,7 @@ int main(int argc, char** argv)
 
   scene->AddSurface(std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.5f, 0.7f, -0.4f), 0.3f, mirrorMat)));
   scene->AddSurface(std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.1f, 0.7f, -0.8f), 0.2f, glassMat)));
+
   // KD Tree
   vector<Triangle> triangles;
   vector<Box> allBoxes;
@@ -74,11 +70,20 @@ int main(int argc, char** argv)
 
   scene->triangles = triangles;
   scene->rootNode = rootNode;
-
+#endif
 
   // Normal
 
 #if RAYTRACER
+
+
+  std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
+  Bunny->Scale(2.5f);
+  Bunny->Translate(glm::vec3(0.4f, 0.1f, -0.3f));
+  Bunny->Rotate(glm::vec3(0.0f, 180.0f, 180.0f));
+  scene->AddMesh(Bunny);
+
+
   scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 12.0f, true, glm::vec3(0, -0.5f, -0.7f))));
   std::shared_ptr<Mesh> LightPlane = MeshFactory::GetCube();
   LightPlane->Translate(glm::vec3(0.0f, -1.0f, 0.0f));
@@ -91,7 +96,9 @@ int main(int argc, char** argv)
 
   Renderer* renderer = new RaytraceRenderer;
 #else // RASTERIZER
-  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 50.0f, true, glm::vec3(0, -0.0f, -2.0f))));
+  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 0.0f, 0.0f), 60.0f, true, glm::vec3(-0.2f, -0.0f, -2.5f))));
+  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(0.0f, 0.0f, 1.0f), 60.0f, true, glm::vec3( 0.2f, -0.0f, -2.5f))));
+  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(0.0f, 1.0f, 0.0f), 60.0f, true, glm::vec3( 0.0f, -0.2f, -2.5f))));
 
   Renderer* renderer = new RasterizeRenderer;
 #endif

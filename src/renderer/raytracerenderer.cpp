@@ -99,7 +99,8 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& dir, const Scene* scene, 
   vec3 light(0.0f, 0.0f, 0.0f);
 
   vec3 indirectLight = vec3(0.0f, 0.0f, 0.0f);
-  vec3 normal = intersection.GetNormal();
+  vec3 normal, tangent, bitangent;
+  intersection.GetNormals(normal, tangent, bitangent);
 
   glm::vec3 iPosition = intersection.vertexData.position;
 
@@ -108,7 +109,7 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& dir, const Scene* scene, 
     float importance;
     bool isRefractionRay;
 
-    mat->CalculateReflectedRay(dir, normal, intersection.vertexData, indir_dir, isRefractionRay, importance);
+    mat->CalculateReflectedRay(dir, normal, tangent, bitangent, intersection.vertexData, indir_dir, isRefractionRay, importance);
 
     const float lightFactor = (isRefractionRay ? -1.0f : 1.0f) * glm::dot(indir_dir, normal);
 
@@ -118,7 +119,11 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& dir, const Scene* scene, 
       if (scene->ClosestIntersection(iPosition + (indir_dir * 0.001f), indir_dir, indIntersection))
       {
         vec3 indColour = ShadePoint_Internal(indir_dir, scene, curDepth - 1, indIntersection);
-        glm::vec3 brdf = mat->CalculateBRDF(dir, glm::normalize(iPosition - indIntersection.vertexData.position), indIntersection.GetNormal(), intersection.vertexData);
+
+        vec3 inormal, itangent, ibitangent;
+        indIntersection.GetNormals(inormal, itangent, ibitangent);
+
+        glm::vec3 brdf = mat->CalculateBRDF(dir, glm::normalize(iPosition - indIntersection.vertexData.position), inormal, itangent, ibitangent, intersection.vertexData);
 
         indirectLight = lightFactor * brdf * indColour * 2.0f;
       }
@@ -164,8 +169,10 @@ vec3 RaytraceRenderer::DirectLight(const vec3& in_ray, const Intersection& inter
 
   if (diffFactor > 0.0f)
   {
-    for (const std::shared_ptr<Light> light : *Lights)
+    for (size_t i = 0; i < Lights->size(); ++i)
     {
+      const std::shared_ptr<Light>& light = Lights->at(i);
+
       vec3 lightDir = light->GetLightDirection(iPosition);
 
       Intersection shadowIntersection;
@@ -174,7 +181,10 @@ vec3 RaytraceRenderer::DirectLight(const vec3& in_ray, const Intersection& inter
         return glm::vec3(0.0f, 0.0f, 0.0f);
       }
 
-      glm::vec3 brdf = mat->CalculateBRDF(in_ray, glm::normalize(lightDir), intersection.GetNormal(), intersection.vertexData);
+      vec3 normals, tangent, bitangent;
+      intersection.GetNormals(normals, tangent, bitangent);
+
+      glm::vec3 brdf = mat->CalculateBRDF(in_ray, glm::normalize(lightDir), normals, tangent, bitangent, intersection.vertexData);
       colour += brdf * light->CalculateLightAtLocation(iPosition);
     }
   }
