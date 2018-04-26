@@ -13,7 +13,7 @@
 #include "mesh/meshfactory.h"
 #include "light/pointlight.h"
 #include "mesh/mesh.h"
-#include "material/phongmaterial.h"
+#include "material/material.h"
 #include "surface/sphere.h"
 #include "texture/texture.h"
 
@@ -27,8 +27,7 @@ int main(int argc, char** argv)
 {
   Scene* scene = new Scene;
 
-
-  std::shared_ptr<Material> floorMat(new PhongMaterial(glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(0.6f, 0.6f, 0.6f), 0.0f, 0.0f, 10.0f));
+  std::shared_ptr<Material> floorMat(new Material(glm::vec3(0.8f, 0.8f, 0.8f), 0.6f, 0.0f, 0.0f, 10.0f));
   floorMat->albedoTexture = std::shared_ptr<Texture>(new Texture("floor/ft_broken01_c.png"));
   floorMat->normalTexture = std::shared_ptr<Texture>(new Texture("floor/ft_broken01_n.png"));
 
@@ -46,26 +45,26 @@ int main(int argc, char** argv)
   Bunny->Rotate(glm::vec3(0.0f, 180.0f, 180.0f));
   scene->AddMesh(Bunny);
 
-  std::shared_ptr<Material> mirrorMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0f, 50.0f));
-  std::shared_ptr<Material> frostyMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 0.4f, 0.0f, 50.0f));
-  std::shared_ptr<Material> glassMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 0.0f, 0.0f, 10.0f, 1.0f, 1.7f));
+  std::shared_ptr<Material> mirrorMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 1.0f, 0.0f, 50.0f));
+  std::shared_ptr<Material> frostyMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.4f, 0.0f, 50.0f));
+  std::shared_ptr<Material> glassMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0f, 0.0f, 10.0f, 1.0f, 1.7f));
 
   scene->AddSurface(std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.5f, 0.7f, -0.4f), 0.3f, mirrorMat)));
   scene->AddSurface(std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.1f, 0.7f, -0.8f), 0.2f, glassMat)));
 #if RAYTRACER
-  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 12.0f, true, glm::vec3(0, -0.5, -0.7))));
+  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 12.0f, true, glm::vec3(0, -0.5f, -0.7f))));
   std::shared_ptr<Mesh> LightPlane = MeshFactory::GetCube();
   LightPlane->Translate(glm::vec3(0.0f, -1.0f, 0.0f));
   LightPlane->Scale(glm::vec3(2.0f, 0.01f, 2.0f));
 
-  std::shared_ptr<Material> LightMat(new PhongMaterial(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, 13.0f));
+  std::shared_ptr<Material> LightMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 0.0f, 0.0f, 13.0f));
   LightPlane->SetMaterial(LightMat);
 
   scene->AddMesh(LightPlane);
 
   Renderer* renderer = new RaytraceRenderer;
 #else // RASTERIZER
-  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 60.0f, true, glm::vec3(0, 0, -2.4))));
+  scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 50.0f, true, glm::vec3(0, -0.0f, -2.0f))));
 
   Renderer* renderer = new RasterizeRenderer;
 #endif

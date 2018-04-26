@@ -14,15 +14,14 @@ class Material
 {
 public:
 
-  Material(const glm::vec3& Albedo, const glm::vec3& Specular = glm::vec3(0.0f, 0.0f, 0.0f), const float Mirror = 0.0f, const float Emissive = 0.0f, float Transparency = 0.0f, const float IOR = 1.0f) :
-    albedo(Albedo), specular(Specular), mirror(Mirror), emissive(Emissive), transparency(Transparency), ior(IOR)
+  Material(const glm::vec3& Albedo, const float Specular = 0.0f, const float Mirror = 0.0f, const float Emissive = 0.0f, float SpecularExponent = 10.0f, float Transparency = 0.0f, const float IOR = 1.0f) :
+    albedo(Albedo), specular(Specular), mirror(Mirror), emissive(Emissive), specularExponent(SpecularExponent), transparency(Transparency), ior(IOR)
   {}
 
-	virtual glm::vec3 CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& inNormal, const Vertex& vertexData) = 0;
+	glm::vec3 CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& inNormal, const Vertex& vertexData) const;
 
   //returns a reflection ray according to importance sampling for this material
-  glm::vec3 CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& normal) const;
-
+  void CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& inNormal, const Vertex& vertexData, glm::vec3& outRay, bool& outIsRefractionRay, float& outImportance) const;
 
   inline glm::vec3 GetAlbedo(glm::vec2 UV) const 
   {
@@ -40,15 +39,16 @@ public:
 public:
 
   glm::vec3 albedo;
-  glm::vec3 specular;
 
-  std::shared_ptr<Texture> albedoTexture;
-  std::shared_ptr<Texture> normalTexture;
-
+  float specular;
   float mirror;
   float emissive;
   float transparency;
+  float specularExponent;
   float ior;
+
+  std::shared_ptr<Texture> albedoTexture;
+  std::shared_ptr<Texture> normalTexture;
 
 public:
 

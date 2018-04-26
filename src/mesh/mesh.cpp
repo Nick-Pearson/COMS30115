@@ -1,6 +1,6 @@
 #include "mesh.h"
 
-#include "../material/phongmaterial.h"
+#include "../material/material.h"
 #include "../amath.h"
 
 #include <glm/gtx/transform.hpp>
@@ -11,7 +11,7 @@ Mesh::Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangle
 	CacheNormals();
   CalculateBounds();
 
-	SetMaterial(std::shared_ptr<Material>(new PhongMaterial(glm::vec3(0.75f, 0.75f, 0.75f))));
+	SetMaterial(std::shared_ptr<Material>(new Material(glm::vec3(0.6f, 0.6f, 0.6f))));
 }
 
 void Mesh::Translate(const glm::vec3& translation)

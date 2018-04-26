@@ -17,7 +17,7 @@
 #include <glm/gtx/norm.hpp>
 
 #define MAX_BOUNCES 5
-#define NUM_DIRS 5000
+#define NUM_DIRS 1000
 
 // if set to 0 then simple shading is used
 #define USE_GI 0
@@ -104,16 +104,24 @@ vec3 RaytraceRenderer::ShadePoint_Internal(const vec3& dir, const Scene* scene, 
   glm::vec3 iPosition = intersection.vertexData.position;
 
   {
-    const glm::vec3 indir_dir = mat->CalculateReflectedRay(dir, normal);
-    const float lightFactor = abs(glm::dot(indir_dir, normal));
+    glm::vec3 indir_dir;
+    float importance;
+    bool isRefractionRay;
 
-    Intersection indIntersection;
-    if (scene->ClosestIntersection(iPosition + (indir_dir * 0.001f), indir_dir, indIntersection))
+    mat->CalculateReflectedRay(dir, normal, intersection.vertexData, indir_dir, isRefractionRay, importance);
+
+    const float lightFactor = (isRefractionRay ? -1.0f : 1.0f) * glm::dot(indir_dir, normal);
+
+    if (lightFactor > 0.0f)
     {
-      vec3 indColour = ShadePoint_Internal(indir_dir, scene, curDepth - 1, indIntersection);
-      glm::vec3 brdf = mat->CalculateBRDF(dir, glm::normalize(iPosition - indIntersection.vertexData.position), indIntersection.GetNormal(), intersection.vertexData);
+      Intersection indIntersection;
+      if (scene->ClosestIntersection(iPosition + (indir_dir * 0.001f), indir_dir, indIntersection))
+      {
+        vec3 indColour = ShadePoint_Internal(indir_dir, scene, curDepth - 1, indIntersection);
+        glm::vec3 brdf = mat->CalculateBRDF(dir, glm::normalize(iPosition - indIntersection.vertexData.position), indIntersection.GetNormal(), intersection.vertexData);
 
-      indirectLight = lightFactor * brdf * indColour * 2.0f;
+        indirectLight = lightFactor * brdf * indColour * 2.0f;
+      }
     }
   }
 

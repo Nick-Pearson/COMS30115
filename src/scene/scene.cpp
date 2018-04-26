@@ -96,8 +96,6 @@ vec3 Scene::GetEnvironmentColour(const vec3& dir) const
 template<typename Func>
 bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection /*= false*/) const
 {
-  dir = glm::normalize(dir);
-
 	for (const std::shared_ptr<Mesh> mesh : Meshes)
 	{
 		if (!mesh->bounds.DoesIntersect(start, dir)) continue;

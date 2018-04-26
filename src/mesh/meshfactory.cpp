@@ -1,7 +1,7 @@
 #include "meshfactory.h"
 
 #include "mesh.h"
-#include "../material/phongmaterial.h"
+#include "../material/material.h"
 
 #include <iostream>
 #include<cctype>
@@ -58,7 +58,7 @@ void LoadMTLLib(std::string path, std::vector<std::shared_ptr<Material>>& outMat
   std::string line;
   line.clear();
 
-  std::shared_ptr<PhongMaterial> curMaterial;
+  std::shared_ptr<Material> curMaterial;
 
   while (std::getline(ifs, line))
   {
@@ -72,7 +72,7 @@ void LoadMTLLib(std::string path, std::vector<std::shared_ptr<Material>>& outMat
 
     if (line.substr(0, 6).compare("newmtl") == 0)
     {
-      curMaterial = std::shared_ptr<PhongMaterial>(new PhongMaterial(glm::vec3(0.75f, 0.75f, 0.75f)));
+      curMaterial = std::shared_ptr<Material>(new Material(glm::vec3(0.75f, 0.75f, 0.75f)));
       outMaterials.push_back(curMaterial);
       outMaterialNames.push_back(data);
     }
@@ -92,7 +92,7 @@ void LoadMTLLib(std::string path, std::vector<std::shared_ptr<Material>>& outMat
     {
       float r, g, b;
       if (3 == sscanf(data.c_str(), "%f %f %f", &r, &g, &b))
-        curMaterial->specular = glm::vec3(r, g, b);
+        curMaterial->specular = r;
     }
 
     line.clear();

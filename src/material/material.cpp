@@ -2,11 +2,30 @@
 #include "../amath.h"
 
 #include <random>
+#include <algorithm>
 
 #include <glm/gtx/transform.hpp>
 
-glm::vec3 Material::CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& normal) const
+glm::vec3 Material::CalculateBRDF(const glm::vec3& view, const glm::vec3& light, const glm::vec3& inNormal, const Vertex& vertexData) const
 {
+  glm::vec3 normal = GetModifiedNormal(inNormal, vertexData.uv0);
+
+  // reflected direction L - 2(N . LN)
+  glm::vec3 idealReflectionRay = glm::normalize(light - (2.0f * glm::dot(light, normal) * normal));
+
+  float spec = std::pow(std::max(0.f, glm::dot(idealReflectionRay, view)), specularExponent) * specular;
+  return (std::max(0.f, glm::dot(normal, light)) * GetAlbedo(vertexData.uv0)) +
+    (spec  * glm::vec3(1.0f, 1.0f, 1.0f));
+}
+
+
+void Material::CalculateReflectedRay(const glm::vec3& in_ray, const glm::vec3& inNormal, const Vertex& vertexData, glm::vec3& outRay, bool& outIsRefractionRay, float& outImportance) const
+{
+  glm::vec3 normal = GetModifiedNormal(inNormal, vertexData.uv0);
+
+  outIsRefractionRay = false;
+  outImportance = 1.0f;
+
   float refrFactor = transparency;
 
   if (refrFactor > 0.0f)
@@ -19,7 +38,9 @@ glm::vec3 Material::CalculateReflectedRay(const glm::vec3& in_ray, const glm::ve
 
   if (useRefractionRay)
   {
-    return Material::GetRefractionDir(in_ray, normal, ior);
+    outRay = Material::GetRefractionDir(in_ray, normal, ior);
+    outIsRefractionRay = true;
+    return;
   }
 
   const float reflFactor = (1.0f - refrFactor) * mirror;
@@ -28,7 +49,8 @@ glm::vec3 Material::CalculateReflectedRay(const glm::vec3& in_ray, const glm::ve
 
   if(useReflectionRay)
   {
-    return glm::normalize(in_ray - (2.0f * glm::dot(in_ray, normal) * normal));
+    outRay = glm::normalize(in_ray - (2.0f * glm::dot(in_ray, normal) * normal));
+    return;
   }
 
   // add a random direction of indirect light
@@ -41,7 +63,10 @@ glm::vec3 Material::CalculateReflectedRay(const glm::vec3& in_ray, const glm::ve
   rotationMatrix = glm::rotate(rotationMatrix, theta2, glm::vec3(0.0f, 1.0f, 0.0f));
   rotationMatrix = glm::rotate(rotationMatrix, theta3, glm::vec3(0.0f, 0.0f, 1.0f));
 
-  return glm::vec3(glm::vec4(normal, 1.0f) * rotationMatrix);
+  outRay = glm::vec3(glm::vec4(normal, 1.0f) * rotationMatrix);
+
+  glm::vec3 idealReflectionRay = glm::normalize(outRay - (2.0f * glm::dot(outRay, normal) * normal));
+  outImportance = std::pow(std::max(0.f, glm::dot(idealReflectionRay, in_ray)), specularExponent) * specular;
 }
 
 glm::vec3 Material::GetModifiedNormal(const glm::vec3& initialNormal, glm::vec2 UV) const
