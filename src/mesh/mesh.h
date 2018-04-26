@@ -4,9 +4,10 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-
+#include "glm/gtx/string_cast.hpp"
+#include <glm/gtc/constants.hpp>
 #include <memory>
-
+#include <string>
 #include "../structs/box.h"
 
 using namespace glm;
@@ -80,7 +81,8 @@ class Triangle
 public:
 	int v0, v1, v2;
 	vec3 normal;
-
+  vec3 mid;
+  vec3 a0, a1, a2;
 	Triangle(int v0, int v1, int v2)
 		: v0(v0), v1(v1), v2(v2), normal(glm::vec3())
 	{}
@@ -91,6 +93,13 @@ public:
     const vec3 e2 = v2Pos - v0Pos;
     normal = glm::normalize(glm::cross(e2, e1));
   }
+
+  inline void ComputeMid(const glm::vec3& v0Pos, const glm::vec3& v1Pos, const glm::vec3& v2Pos) {
+		mid = (v0Pos + v1Pos + v2Pos) / 3.0f;
+    a0 = v0Pos;
+    a1 = v1Pos;
+    a2 = v2Pos;
+	}
 };
 
 class Mesh

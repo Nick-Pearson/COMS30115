@@ -13,6 +13,8 @@ class Cubemap;
 class Light;
 class ImplicitSurface;
 class Material;
+class KDNode;
+class Triangle;
 
 using glm::mat4;
 using glm::vec3;
@@ -36,11 +38,12 @@ struct Intersection
   inline bool isValid() const { return mesh || surf; }
   std::shared_ptr<Material> GetMaterial() const;
   vec3 GetNormal() const;
+  int triangleIndex = -1;
 
 private:
 
 	std::shared_ptr<Mesh> mesh = nullptr;
-	int triangleIndex = -1;
+
 
   std::shared_ptr<ImplicitSurface> surf = nullptr;
   vec3 normal;
@@ -61,6 +64,8 @@ public:
 	// returns any intersecting object along the ray
 	bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
 
+  bool RefractionIntersection(const vec3& start, const vec3& dir, Intersection closestIntersection) const;
+
 	bool Raymarch(const vec3& start, const vec3& dir, Intersection& closestGeometry) const;
 
 	void AddMesh(std::shared_ptr<Mesh> mesh) { if(mesh) Meshes.push_back(mesh); }
@@ -78,6 +83,10 @@ public:
 
 	Cubemap* environment;
 
+  KDNode* rootNode;
+
+  std::vector<Triangle> triangles;
+
 private:
 
 	std::vector<std::shared_ptr<Mesh>> Meshes;
@@ -86,6 +95,9 @@ private:
 
 	// querys the scene for intersections, will return if the predicate function returns true
 	template<typename Func>
-	bool IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false) const;
+	bool IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false, bool checkBackfaces = true) const;
+
+  template<typename Func>
+	bool IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, KDNode node, bool terminateOnValidIntersection = false) const;
 };
 #endif

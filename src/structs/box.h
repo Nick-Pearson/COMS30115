@@ -32,7 +32,27 @@ struct Box
 
 	bool DoesIntersect(const glm::vec3& start, glm::vec3 dir) const;
 
-  glm::vec3 GetCenter() const { return 0.5f * (min + max); }
+  	glm::vec3 GetCenter() const { return 0.5f * (min + max); }
+	
+	int longestAxis(glm::vec3 vector) {
+    if (vector[0] >= vector[1]) {
+      if (vector[0] >= vector[2]) {
+        return 0;
+      } else {
+        return 2;
+      }
+    } else {
+      if (vector[1] >= vector[2]) {
+        return 1;
+      } else {
+        return 2;
+      }
+    }
+  }
+
+  int longestAxis() {
+    return longestAxis(max - min);
+  }
 
 	glm::vec3 min;
 	glm::vec3 max;

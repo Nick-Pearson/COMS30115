@@ -16,6 +16,7 @@
 #include "material/material.h"
 #include "surface/sphere.h"
 #include "texture/texture.h"
+#include "structs/KDTree.h"
 
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 720
@@ -49,8 +50,34 @@ int main(int argc, char** argv)
   std::shared_ptr<Material> frostyMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.4f, 0.0f, 50.0f));
   std::shared_ptr<Material> glassMat(new Material(glm::vec3(1.0f, 1.0f, 1.0f), 1.0f, 0.0f, 0.0f, 10.0f, 1.0f, 1.7f));
 
+
   scene->AddSurface(std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.5f, 0.7f, -0.4f), 0.3f, mirrorMat)));
   scene->AddSurface(std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.1f, 0.7f, -0.8f), 0.2f, glassMat)));
+  // KD Tree
+  vector<Triangle> triangles;
+  vector<Box> allBoxes;
+  KDNode* rootNode = new KDNode();
+
+  const std::vector<std::shared_ptr<Mesh>>* Meshes = scene->GetMeshes();
+
+  for (const std::shared_ptr<Mesh> mesh : *Meshes) {
+    triangles.insert(std::end(triangles), std::begin(mesh->Triangles), std::end(mesh->Triangles));
+    for (int i =0;i < mesh->Triangles.size(); i++) {
+      allBoxes.push_back(mesh->bounds);
+    }
+  }
+	std::vector<int> trianglesIndices;
+	for (int i=0; i<triangles.size(); i++)
+      trianglesIndices.push_back(i);
+
+	rootNode = rootNode->build(triangles, trianglesIndices, allBoxes, 0);
+
+  scene->triangles = triangles;
+  scene->rootNode = rootNode;
+
+
+  // Normal
+
 #if RAYTRACER
   scene->AddLight(std::shared_ptr<Light>(new PointLight(glm::vec3(1.0f, 1.0f, 1.0f), 12.0f, true, glm::vec3(0, -0.5f, -0.7f))));
   std::shared_ptr<Mesh> LightPlane = MeshFactory::GetCube();

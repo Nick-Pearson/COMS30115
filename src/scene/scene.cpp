@@ -4,6 +4,7 @@
 #include "../mesh/mesh.h"
 #include "../texture/texturecubemap.h"
 #include "../surface/implicitsurface.h"
+#include "../structs/KDtree.h"
 
 #include <glm/gtc/matrix_access.hpp>
 
@@ -40,12 +41,16 @@ Scene::Scene()
 #endif
 
 	environment = new TextureCubemap("skyboxes/Maskonaive");
+  rootNode = new KDNode();
+
+  triangles = std::vector<Triangle>();
 }
 
 Scene::~Scene()
 {
 	delete camera;
 	delete environment;
+  delete rootNode;
 }
 
 void Scene::Update(float DeltaSeconds)
@@ -58,16 +63,25 @@ bool Scene::ClosestIntersection(const vec3& start, const vec3& dir, Intersection
 {
 	closestIntersection.distance = std::numeric_limits<float>::max();
 
-	return IntersectScene_Internal(start, dir, [&](float t, const Intersection& curIntersection) {
+	return IntersectScene_Internal_KDNode(start, dir, [&](float t, const Intersection& curIntersection) {
 		return t < curIntersection.distance;
-	}, closestIntersection);
+	}, closestIntersection, *rootNode, false);
 }
 
 bool Scene::ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const
 {
-	return IntersectScene_Internal(start, dir, [&](float t, const Intersection& curIntersection) {
+	return IntersectScene_Internal_KDNode(start, dir, [&](float t, const Intersection& curIntersection) {
 		return t < 1.0f;
-	}, firstIntersection, true);
+	}, firstIntersection, *rootNode, true);
+}
+
+bool Scene::RefractionIntersection(const vec3& start, const vec3& dir, Intersection closestIntersection) const
+{
+	closestIntersection.distance = std::numeric_limits<float>::max();
+
+  return IntersectScene_Internal(start, dir, [&](float t, const Intersection& curIntersection) {
+		return t < curIntersection.distance;
+	}, closestIntersection, false, false); // false
 }
 
 void Scene::AddSurface(std::shared_ptr<ImplicitSurface> Surface)
@@ -94,8 +108,10 @@ vec3 Scene::GetEnvironmentColour(const vec3& dir) const
 }
 
 template<typename Func>
-bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection /*= false*/) const
+bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection /*= false*/, bool checkBackfaces /*= true*/) const
 {
+  dir = glm::normalize(dir);
+
 	for (const std::shared_ptr<Mesh> mesh : Meshes)
 	{
 		if (!mesh->bounds.DoesIntersect(start, dir)) continue;
@@ -105,14 +121,14 @@ bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate,
 			Triangle& triangle = mesh->Triangles[i];
 
 			// Dot product optimisation
-			if (glm::dot(triangle.normal, dir) >= 0.0f)
+			if (checkBackfaces && glm::dot(triangle.normal, dir) >= 0.0f)
 			{
 				continue;
 			}
 
-			const vec3& v0 = mesh->Verticies[triangle.v0].position;
-			const vec3& v1 = mesh->Verticies[triangle.v1].position;
-			const vec3& v2 = mesh->Verticies[triangle.v2].position;
+			vec3 v0 = mesh->Verticies[triangle.v0].position;
+			vec3 v1 = mesh->Verticies[triangle.v1].position;
+			vec3 v2 = mesh->Verticies[triangle.v2].position;
 
 			vec3 e1 = v1 - v0;
 			vec3 e2 = v2 - v0;
@@ -131,22 +147,9 @@ bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate,
 			const float u = glm::determinant(glm::column(A, 1, b)) / detA;
 			const float v = glm::determinant(glm::column(A, 2, b)) / detA;
 
-			if (u >= 0.0f && v >= 0.0f && u + v <= 1.0f)
+			if (u >= 0 && v >= 0 && u + v <= 1)
 			{
-        const glm::vec3 P = start + (t * dir);
-
-        //calculate barycentric coordinates
-        glm::mat3 R(v0, v1, v2);
-        const float detR = glm::determinant(R);
-
-        glm::vec3 coords;
-        coords.x = glm::determinant(glm::column(R, 0, P)) / detR;
-        coords.y = glm::determinant(glm::column(R, 1, P)) / detR;
-        coords.z = glm::determinant(glm::column(R, 2, P)) / detR;
-
-        const Vertex vertexData = (mesh->Verticies[triangle.v0] * coords.x) + (mesh->Verticies[triangle.v1] * coords.y) + (mesh->Verticies[triangle.v2] * coords.z);
-
-				outIntersection = Intersection(vertexData, t, mesh, (int)i);
+				outIntersection = Intersection(start + (t * dir), t, mesh, (int)i);
 
 				if (terminateOnValidIntersection)
 					return true;
@@ -158,9 +161,10 @@ bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate,
   {
     float t = 0.0f;
     glm::vec3 normal;
-    if(!surf->Intersect(start, dir, t, normal) ||
-      t < 0.0f ||
-      !Predicate(t, const_cast<const Intersection&>(outIntersection)))
+    
+    if (!surf->Intersect(start, dir, t, normal)) continue;
+
+    if(t < 0.0f || !Predicate(t, const_cast<const Intersection&>(outIntersection)))
       continue;
 
     outIntersection = Intersection(start + (t * dir), t, surf, normal);
@@ -170,4 +174,56 @@ bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate,
   }
 
   return outIntersection.isValid();
+}
+
+template<typename Func>
+bool Scene::IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, KDNode node, bool terminateOnValidIntersection /*= false*/) const
+{
+  dir = glm::normalize(dir);
+  if ((&node)->boundingBox.DoesIntersect(start, dir)) {
+    if ((&node)->child1->trianglesIndices.size() > 0 || (&node)->child2->trianglesIndices.size() > 0) {
+      bool hitLeft = IntersectScene_Internal_KDNode(start, dir, Predicate, outIntersection, *node.child1, terminateOnValidIntersection);
+      bool hitRight = IntersectScene_Internal_KDNode(start, dir, Predicate, outIntersection, *node.child2, terminateOnValidIntersection);
+      printf("%s", hitLeft ? "1" : "" );
+      return hitLeft || hitRight;
+      
+      return false;
+    } else {
+      bool isHit = false;
+      for (int i=0; i<(&node)->trianglesIndices.size(); i++) {
+        bool res = CalcIntersectionInternal(start, dir, triangles[(&node)->trianglesIndices[i]], outIntersection);
+        if (res) {
+          isHit = true;
+          outIntersection.triangleIndex = (&node)->trianglesIndices[i];
+        }
+      }
+      return isHit;
+    }
+  }
+  // return false;
+	return outIntersection.triangleIndex != -1;
+}
+
+static bool CalcIntersectionInternal (glm::vec3 start, glm::vec3 direction, Triangle triangle, Intersection &intersection) {
+      glm::vec3 v0 = triangle.a0;
+      glm::vec3 v1 = triangle.a1;
+      glm::vec3 v2 = triangle.a2;
+
+      glm::vec3 e1 = v1 - v0;
+      glm::vec3 e2 = v2 - v0;
+      glm::vec3 b = start - v0;
+
+      glm::mat3 A(-direction, e1, e2);
+      glm::vec3 x;
+
+      x = glm::inverse(A) * b;
+
+      if (x.y >= 0 && x.z >= 0 && x.y + x.z <= 1 && x.x >= 0
+       && x.x < intersection.distance) {
+        // There is an intersection and it is better than the previous best.
+        // intersection.position = start + x.x * direction;
+        intersection.distance = x.x;
+        return true;
+      }
+    return false;
 }

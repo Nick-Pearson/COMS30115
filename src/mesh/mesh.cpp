@@ -120,6 +120,7 @@ void Mesh::CacheNormals()
 	for (Triangle& tri : Triangles)
 	{
     tri.CalculateNormal(Verticies[tri.v0].position, Verticies[tri.v1].position, Verticies[tri.v2].position);
+    tri.ComputeMid(Verticies[tri.v0].position, Verticies[tri.v1].position, Verticies[tri.v2].position);
 	}
 }
 
