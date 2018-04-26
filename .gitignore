@@ -10,6 +10,7 @@ trace.out
 *.dll
 *.vcxproj*
 *.bmp
+*.vspx
 
 x64/
 .vs/

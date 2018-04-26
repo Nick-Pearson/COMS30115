@@ -57,8 +57,25 @@ glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Mat
     const std::shared_ptr<Light>& light = Lights->at(i);
 
     float shadowMultiplier = 1.0f;
-    if(light->CastsShadows() && light->EvaluateShadowMap(vertexData.position))
+    if (light->CastsShadows())
+    {
       shadowMultiplier = 0.2f;
+
+      const float sampleInfluence = 0.8f / 25.0f;
+
+      for (float x = -2.0f; x <= 2.0f; ++x)
+      {
+        for (float y = -2.0f; y <= 2.0f; ++y)
+        {
+          if (!light->EvaluateShadowMap(vertexData.position +
+            (Tri.tangent * x * 0.01f) +
+            (Tri.bitangent * y * 0.01f)))
+          {
+            shadowMultiplier += sampleInfluence;
+          }
+        }
+      }
+    }
 
     glm::vec3 brdf = material->CalculateBRDF(glm::normalize(vertexData.position - scene->camera->position), glm::normalize(light->GetLightDirection(vertexData.position)), Tri.normal, Tri.tangent, Tri.bitangent, vertexData);
     colour += shadowMultiplier * brdf * light->CalculateLightAtLocation(vertexData.position);

@@ -6,10 +6,11 @@ _Done:_
 * Refactor to so that we can compile and run on blue crystal to produce our final results
 * Shadow mapping in rasterizer
 * FXAA anti-aliasing
-* Proper global illumination (current implementation is a bit broken)
-* Soft shadows in raytracer (by using multiple shadow rays)
+* Proper global illumination
+* Soft shadows in raytracer
 * Textures / Normal maps
 * Reflective & Refractive materials in raytracer
+* Importance sampling in Global Illumination
 
 _In Progress_:
 * Full clipping in rasterizer
@@ -18,7 +19,6 @@ _In Progress_:
 _Planned:_
 
 _Other ideas:_
-* Importance sampling in Global Illumination
 * Mesh optimisation by reording trigangles/verts [Example Algorithm](https://tomforsyth1000.github.io/papers/fast_vert_cache_opt.html)
 * Frustrum culling (rasteriser)
 * Porting some code to the GPU (preferably using open CL as this allows us direct control of memory movements)
