@@ -18,8 +18,8 @@
 #include "texture/texture.h"
 #include "structs/KDTree.h"
 
-#define SCREEN_WIDTH 1024
-#define SCREEN_HEIGHT 1024
+#define SCREEN_WIDTH 512
+#define SCREEN_HEIGHT 512
 #define SINGLE_FRAME 0
 
 void Update(float deltaMilliseconds);
@@ -48,34 +48,6 @@ int main(int argc, char** argv)
 
   scene->AddSurface(std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.5f, 0.7f, -0.4f), 0.3f, mirrorMat)));
   scene->AddSurface(std::shared_ptr<Sphere>(new Sphere(glm::vec3(-0.1f, 0.7f, -0.8f), 0.2f, glassMat)));
-
-  // KD Tree
-  vector<Triangle> triangles;
-  vector<Box> allBoxes;
-  KDNode* rootNode = new KDNode();
-
-  const std::vector<std::shared_ptr<Mesh>>* Meshes = scene->GetMeshes();
-
-  for (const std::shared_ptr<Mesh> mesh : *Meshes) {
-    triangles.insert(std::end(triangles), std::begin(mesh->Triangles), std::end(mesh->Triangles));
-    for (int i =0;i < mesh->Triangles.size(); i++) {
-      allBoxes.push_back(mesh->bounds);
-    }
-  }
-	std::vector<int> trianglesIndices;
-	for (int i=0; i<triangles.size(); i++)
-      trianglesIndices.push_back(i);
-
-	rootNode = rootNode->build(triangles, trianglesIndices, allBoxes, 0);
-
-  scene->triangles = triangles;
-  scene->rootNode = rootNode;
-#endif
-
-  // Normal
-
-#if RAYTRACER
-
 
   std::shared_ptr<Mesh> Bunny = MeshFactory::LoadFromFile("bunny.obj");
   Bunny->Scale(2.5f);

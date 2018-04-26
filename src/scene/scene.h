@@ -63,11 +63,7 @@ public:
 	bool ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection) const;
 
 	// returns any intersecting object along the ray
-	bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
-
-  bool RefractionIntersection(const vec3& start, const vec3& dir, Intersection closestIntersection) const;
-
-	bool Raymarch(const vec3& start, const vec3& dir, Intersection& closestGeometry) const;
+  bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
 
 	void AddMesh(std::shared_ptr<Mesh> mesh) { if(mesh) Meshes.push_back(mesh); }
 	inline const std::vector<std::shared_ptr<Mesh>>* GetMeshes() const { return &Meshes; }
@@ -84,10 +80,6 @@ public:
 
 	Cubemap* environment;
 
-  KDNode* rootNode;
-
-  std::vector<Triangle> triangles;
-
 private:
 
 	std::vector<std::shared_ptr<Mesh>> Meshes;
@@ -96,9 +88,9 @@ private:
 
 	// querys the scene for intersections, will return if the predicate function returns true
 	template<typename Func>
-	bool IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false, bool checkBackfaces = true) const;
+	bool IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false) const;
 
   template<typename Func>
-	bool IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, KDNode node, bool terminateOnValidIntersection = false) const;
+	bool IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, const std::shared_ptr<Mesh> mesh, Func Predicate, Intersection& outIntersection, const KDNode* node) const;
 };
 #endif

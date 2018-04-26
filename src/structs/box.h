@@ -30,10 +30,26 @@ struct Box
 		min.z = std::min(min.z, other.z);
 	}
 
+  void operator+=(const Box& other)
+  {
+    if (!isValid)
+    {
+      min = other.min;
+      min = other.max;
+      isValid = true;
+      return;
+    }
+
+    *this += other.min;
+    *this += other.max;
+  }
+
 	bool DoesIntersect(const glm::vec3& start, glm::vec3 dir) const;
 
   	glm::vec3 GetCenter() const { return 0.5f * (min + max); }
 	
+    inline void Invalidate() { isValid = false; }
+
 	int longestAxis(glm::vec3 vector) {
     if (vector[0] >= vector[1]) {
       if (vector[0] >= vector[2]) {

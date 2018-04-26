@@ -2,6 +2,7 @@
 
 #include "../material/material.h"
 #include "../amath.h"
+#include "../structs/KDTree.h"
 
 #include <glm/gtx/transform.hpp>
 
@@ -10,8 +11,14 @@ Mesh::Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangle
 {
 	CacheNormals();
   CalculateBounds();
+  BuildKDTree();
 
 	SetMaterial(std::shared_ptr<Material>(new Material(glm::vec3(0.6f, 0.6f, 0.6f))));
+}
+
+Mesh::~Mesh()
+{
+  delete RootNode;
 }
 
 void Mesh::Translate(const glm::vec3& translation)
@@ -40,6 +47,7 @@ void Mesh::Rotate(const glm::vec3& eulerAngles)
 
   CacheNormals();
   CalculateBounds();
+  BuildKDTree();
 }
 
 void Mesh::Scale(const glm::vec3& scaleFactor)
@@ -120,7 +128,6 @@ void Mesh::CacheNormals()
 	for (Triangle& tri : Triangles)
 	{
     tri.CalculateNormal(Verticies[tri.v0].position, Verticies[tri.v1].position, Verticies[tri.v2].position);
-    tri.ComputeMid(Verticies[tri.v0].position, Verticies[tri.v1].position, Verticies[tri.v2].position);
 	}
 }
 
@@ -130,4 +137,25 @@ void Mesh::CalculateBounds()
 
 	for (const Vertex& vert : Verticies)
 		bounds += vert.position;
+
+  UpdateKDTreeBounds();
+}
+
+void Mesh::BuildKDTree()
+{
+  std::vector<int> trianglesIndices;
+  trianglesIndices.reserve(Triangles.size());
+
+  for (int i = 0; i < Triangles.size(); i++)
+  {
+    trianglesIndices.push_back(i);
+  }
+
+  delete RootNode;
+  RootNode = RootNode->build(this, trianglesIndices, 0);
+}
+
+void Mesh::UpdateKDTreeBounds()
+{
+  if (RootNode) RootNode->UpdateBounds(this);
 }

@@ -4,6 +4,9 @@ Nick Pearson (np14842) & Ben Allen (ba14800)
 In order to make best use of optimisation and extensions we decided to implement the raytracer and rasterizer in the same code solution. This is achieved using compile flags set in the makefile
 Over the course of the project we also removed the dependancy on SDL, this was so we could run the raytracer without having to supervise a render.
 
+In addition to glm we have added the image loading file from the [open source stb library](https://github.com/nothings/stb)
+Everything in the src/ directory is our own work, the /libs directory contains the library files
+
 #### Requirements
 - OpenMP
 

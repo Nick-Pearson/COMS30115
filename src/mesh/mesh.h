@@ -80,10 +80,7 @@ struct Vertex
 class Triangle
 {
 public:
-	int v0, v1, v2;
-
-  vec3 mid;
-  vec3 a0, a1, a2;
+  int v0, v1, v2;
 
 	vec3 normal, tangent, bitangent;
 
@@ -101,13 +98,6 @@ public:
     //calculate the tangent and bitangent
     Misc::CalcTangentsFromNormal(normal, tangent, bitangent);
   }
-
-  inline void ComputeMid(const glm::vec3& v0Pos, const glm::vec3& v1Pos, const glm::vec3& v2Pos) {
-		mid = (v0Pos + v1Pos + v2Pos) / 3.0f;
-    a0 = v0Pos;
-    a1 = v1Pos;
-    a2 = v2Pos;
-	}
 };
 
 class Mesh
@@ -117,7 +107,7 @@ public:
   // constructor that takes a set of verticies and triangles to copy (any invalid triangles will be dropped)
   Mesh(const vector<Vertex>& inVerticies, const vector<Triangle>& inTriangles);
 
-  virtual ~Mesh() {}
+  virtual ~Mesh();
 
   void Translate(const glm::vec3& translation);
 
@@ -132,6 +122,7 @@ public:
   vector<Triangle> Triangles;
 
   Box bounds;
+  class KDNode* RootNode;
 
   std::shared_ptr<Material> GetMaterial(int32 triangleIndex) const;
 
@@ -146,6 +137,8 @@ private:
 
 	void CacheNormals();
 	void CalculateBounds();
+  void BuildKDTree();
+  void UpdateKDTreeBounds();
 };
 
 #endif // ! MESH_H
