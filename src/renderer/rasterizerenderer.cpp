@@ -7,8 +7,10 @@ void RasterizeRenderer::Draw(const Scene* scene)
   const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
   glm::vec3 colour(0.0f, 0.0f, 0.0f);
 
-  for (const std::shared_ptr<Light> light : *Lights)
+  for (size_t i = 0; i < Lights->size(); ++i)
   {
+    const std::shared_ptr<Light>& light = Lights->at(i);
+
     if (light->CastsShadows())
       light->UpdateShadowMap(scene);
   }
@@ -22,10 +24,6 @@ void RasterizeRenderer::Draw(const Scene* scene)
     }
   }
 #endif
-
-
-  // Early Z test optimisation
-  RasterizeScene<false>(scene, scene->camera, screenptr);
 
   RasterizeScene(scene, scene->camera, screenptr);
 
@@ -54,13 +52,15 @@ glm::vec3 RasterizeRenderer::PixelShader(const Scene* scene, std::shared_ptr<Mat
   const std::vector<std::shared_ptr<Light>>* Lights = scene->GetLights();
   glm::vec3 colour(0.0f, 0.0f, 0.0f);
 
-  for (const std::shared_ptr<Light> light : *Lights)
+  for (size_t i = 0; i < Lights->size(); ++i)
   {
+    const std::shared_ptr<Light>& light = Lights->at(i);
+
     float shadowMultiplier = 1.0f;
     if(light->CastsShadows() && light->EvaluateShadowMap(vertexData.position))
       shadowMultiplier = 0.2f;
 
-    glm::vec3 brdf = material->CalculateBRDF(glm::normalize(vertexData.position - scene->camera->position), glm::normalize(light->GetLightDirection(vertexData.position)), Tri.normal, vertexData);
+    glm::vec3 brdf = material->CalculateBRDF(glm::normalize(vertexData.position - scene->camera->position), glm::normalize(light->GetLightDirection(vertexData.position)), Tri.normal, Tri.tangent, Tri.bitangent, vertexData);
     colour += shadowMultiplier * brdf * light->CalculateLightAtLocation(vertexData.position);
   }
 
@@ -161,8 +161,10 @@ void RasterizeRenderer::ClipTriangleOnAxis(std::vector<Triangle>& inoutTriangles
           inoutVertexPositions.push_back(inoutVertexPositions[validVert1]);
           inoutVertexData.push_back(inoutVertexData[validVert1]);
 
-          Triangle newTriangle(invalidVertcpy, validVertcpy, newVert);
-          newTriangle.normal = Tri.normal;
+          Triangle newTriangle = Tri;
+          newTriangle.v0 = invalidVertcpy;
+          newTriangle.v1 = validVertcpy;
+          newTriangle.v2 = newVert;
           inoutTriangles.push_back(newTriangle);
         }
       }

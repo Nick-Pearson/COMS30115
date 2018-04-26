@@ -35,6 +35,7 @@ struct Intersection
 
   inline bool isValid() const { return mesh || surf; }
   std::shared_ptr<Material> GetMaterial() const;
+  void GetNormals(vec3& outNormal, vec3& outTangent, vec3& outBitangent) const;
   vec3 GetNormal() const;
 
 private:

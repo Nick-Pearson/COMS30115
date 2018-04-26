@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "../structs/box.h"
+#include "../misc.h"
 
 using namespace glm;
 using namespace std;
@@ -79,10 +80,10 @@ class Triangle
 {
 public:
 	int v0, v1, v2;
-	vec3 normal;
+	vec3 normal, tangent, bitangent;
 
 	Triangle(int v0, int v1, int v2)
-		: v0(v0), v1(v1), v2(v2), normal(glm::vec3())
+		: v0(v0), v1(v1), v2(v2), normal(glm::vec3()), tangent(glm::vec3()), bitangent(glm::vec3())
 	{}
 
   inline void CalculateNormal(const glm::vec3& v0Pos, const glm::vec3& v1Pos, const glm::vec3& v2Pos)
@@ -90,6 +91,9 @@ public:
     const vec3 e1 = v1Pos - v0Pos;
     const vec3 e2 = v2Pos - v0Pos;
     normal = glm::normalize(glm::cross(e2, e1));
+
+    //calculate the tangent and bitangent
+    Misc::CalcTangentsFromNormal(normal, tangent, bitangent);
   }
 };
 
