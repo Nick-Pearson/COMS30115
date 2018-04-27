@@ -23,13 +23,11 @@ public:
 
   void UpdateBounds(const Mesh* mesh);
 
-  KDNode* build(const Mesh* mesh, std::vector<int> triIndices, int depth);
-
-  void PrintDebug(KDNode node, int depthLevel);
+  KDNode* build(const Mesh* mesh, std::vector<int> triIndices, int depth) const;
 
 private:
 
-  bool HasTooManyDupes(std::vector<int> leftTris, std::vector<int> rightTris, float threshold);
+  bool HasDuplicates(std::vector<int> leftTris, std::vector<int> rightTris, float threshold) const;
 
 
 };
