@@ -5,7 +5,7 @@
 #include "../mesh/mesh.h"
 #include "../texture/texturecubemap.h"
 #include "../surface/implicitsurface.h"
-#include "../structs/KDtree.h"
+#include "../structs/KDTree.h"
 
 #include <glm/gtc/matrix_access.hpp>
 
@@ -165,7 +165,7 @@ template<typename Func>
 bool Scene::IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, const std::shared_ptr<Mesh> mesh, Func Predicate, Intersection& outIntersection, const KDNode* node) const
 {
   if (!node->boundingBox.DoesIntersect(start, dir)) return false;
-  
+
   if (node->child1 && node->child2)
   {
     bool hitLeft = IntersectScene_Internal_KDNode(start, dir, mesh, Predicate, outIntersection, node->child1);
@@ -183,7 +183,7 @@ bool Scene::IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, const st
   return isHit;
 }
 
-static bool CalcIntersectionInternal (const glm::vec3& start, const glm::vec3& direction, const std::shared_ptr<Mesh> mesh, const Triangle& triangle, Intersection &intersection)
+bool Scene::CalcIntersectionInternal (const glm::vec3& start, const glm::vec3& direction, const std::shared_ptr<Mesh> mesh, const Triangle& triangle, Intersection &intersection)
 {
   // Dot product optimisation
   if (glm::dot(triangle.normal, direction) >= 0.0f)

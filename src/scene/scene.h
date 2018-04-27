@@ -43,10 +43,9 @@ struct Intersection
 
 private:
 
-	std::shared_ptr<Mesh> mesh = nullptr;
+	std::shared_ptr<Mesh> mesh;
 
-
-  std::shared_ptr<ImplicitSurface> surf = nullptr;
+  std::shared_ptr<ImplicitSurface> surf;
   vec3 normal;
 };
 
@@ -92,5 +91,7 @@ private:
 
   template<typename Func>
 	bool IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, const std::shared_ptr<Mesh> mesh, Func Predicate, Intersection& outIntersection, const KDNode* node) const;
+
+	static bool CalcIntersectionInternal (const glm::vec3& start, const glm::vec3& direction, const std::shared_ptr<Mesh> mesh, const Triangle& triangle, Intersection &intersection);
 };
 #endif

@@ -122,7 +122,7 @@ public:
   vector<Triangle> Triangles;
 
   Box bounds;
-  class KDNode* RootNode;
+  class KDNode* RootNode = nullptr;
 
   std::shared_ptr<Material> GetMaterial(int32 triangleIndex) const;
 

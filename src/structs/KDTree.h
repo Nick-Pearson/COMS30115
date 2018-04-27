@@ -12,11 +12,10 @@ class Mesh;
 class KDNode {
 public:
   Box boundingBox;
-  KDNode* child1;
-  KDNode* child2;
+  KDNode* child1 = nullptr;
+  KDNode* child2 = nullptr;
   std::vector<int> trianglesIndices;
-
-  KDNode() {}
+  
   ~KDNode() {
     delete child1;
     delete child2;

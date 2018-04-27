@@ -34,11 +34,8 @@ KDNode* KDNode::build(const Mesh* mesh, std::vector<int> triIndices, int depth)
 
   node->UpdateBounds(mesh);
 
-  node->child1 = NULL;
-  node->child2 = NULL;
-
   // first, deal with the base cases
-  if (triIndices.size() <= 1)
+  if (triIndices.size() <= 15)
     return node;
 
   // find the midpoint of all triangles

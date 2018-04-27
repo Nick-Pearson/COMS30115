@@ -9,17 +9,17 @@ R_DIR=resources
 EXEC=$(B_DIR)/$(FILE)
 
 # default build settings
-CC_OPTS=-qopenmp -c -pipe -Wall -Wno-switch -ggdb -g3 -std=c++11 -O3 -g
-LN_OPTS=-qopenmp -g
-CC=icc
+CC_OPTS=-c -pipe -Wno-switch -ggdb -g3 -std=c++11 -O3 -g
+LN_OPTS=-g
+CC=g++
 OS = $(shell uname)
 
 #######
 # OpenMP Library
 ifeq ($(OS), Linux)
-  OPENMP_LIB = -Wl,-rpath,/opt/intel/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin
+  OPENMP_LIB = -fopenmp
 else
-  OPENMP_LIB = -Wl,-rpath,/opt/intel/compilers_and_libraries_2018.0.104/mac/compiler/lib
+  OPENMP_LIB = -qopenmp -Wl,-rpath,/opt/intel/compilers_and_libraries_2018.0.104/mac/compiler/lib
 endif
 
 ########
@@ -64,7 +64,6 @@ $(B_DIR)/$(R_DIR):
 
 ########
 #   Code to compile each cpp file
-# $(B_DIR)/%.d
 $(B_DIR)/src_ray/%.o : %.cpp
 	mkdir -p $(dir $@)
 	$(CC) $(CC_OPTS) $(OPENMP_LIB) -o $@ $< $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=1 -D RASTERIZER=0
@@ -73,21 +72,5 @@ $(B_DIR)/src_ras/%.o : %.cpp
 	mkdir -p $(dir $@)
 	$(CC) $(CC_OPTS) $(OPENMP_LIB) -o $@ $< $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=0 -D RASTERIZER=1
 
-# compilation of the .d dependancy files so we dont have to worry about headers
-$(B_DIR)/src_ray/%.d: %.cpp
-	mkdir -p $(dir $@)
-	printf $(dir $@) > $@
-	$(CC) $(CC_OPTS) $(OPENMP_LIB) -MM -MG $*.cpp $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=1 -D RASTERIZER=0 >> $@
-
-$(B_DIR)/src_ras/%.d: %.cpp
-	mkdir -p $(dir $@)
-	printf $(dir $@) > $@
-	$(CC) $(CC_OPTS) $(OPENMP_LIB) -MM -MG $*.cpp $(SDL_CFLAGS) $(GLM_CFLAGS) -D RAYTRACER=0 -D RASTERIZER=1 >> $@
-
 clean:
 	rm -rf $(B_DIR)
-
-ifneq ($(MAKECMDGOALS), clean)
-# -include $(SRCS:%.cpp=$(B_DIR)/src_ray/%.d)
-# -include $(SRCS:%.cpp=$(B_DIR)/src_ras/%.d)
-endif
