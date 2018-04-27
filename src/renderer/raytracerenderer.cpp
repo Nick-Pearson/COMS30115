@@ -17,7 +17,7 @@
 #include <glm/gtx/norm.hpp>
 
 #define MAX_BOUNCES 5
-#define NUM_DIRS 100
+#define NUM_DIRS 10000
 
 // if set to 0 then simple shading is used
 #define USE_GI 0

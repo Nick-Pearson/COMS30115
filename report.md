@@ -7,6 +7,11 @@ Over the course of the project we also removed the dependancy on SDL, this was s
 In addition to glm we have added the image loading file from the [open source stb library](https://github.com/nothings/stb)
 Everything in the src/ directory is our own work, the /libs directory contains the library files
 
+Notes on running:
+* To change the render resolution you can set SCREEN_WIDTH and SCREEN_HEIGHT to different values in main.cpp
+* Set SINGLE_FRAME to 1 in main.cpp and a single frame will be rendered, rather than trying to render on a loop (useful for the raytracer)
+* In raytracerenderer.cpp there is the option to select between using global illumination and not. Set USE_GI to 1 to do a global illumination. At default settings this takes around 3 hours for a 1024x1024 render (10,000 samples) 
+
 #### Requirements
 - OpenMP
 
@@ -30,7 +35,7 @@ Our solution includes implicit surfaces using an abtract base class, we implemen
 #### Object Loader
 We implemented a loader for ".obj" files which includes loading of vertex positions, triangles, texture coordinates and material definitions
 This can be seen from the rabbit that is loaded in.
- 
+
 #### KD-Trees
 We've made use of KD-Tree's to optimise the process of the finding of intersections with triangles in meshes. The program first builds out a tree for each mesh. Each node then has has its bounding box verified and then recursively checks it's child nodes until it finds a match. This signifcantly increased render times.
 
@@ -51,7 +56,7 @@ This is our final rasterizer image. To compile and run use `make rasterizer && .
 
 ### 2.1 Extensions
 #### Shadows
-We implemented shadow maps for our point light source. As the point light is omnidirectional this was combined with our work on cubemaps to generate a 
+We implemented shadow maps for our point light source. As the point light is omnidirectional this was combined with our work on cubemaps to generate a
 shadow cubemap for the point light so that it can case shadows in any direction. We also support many light sources using forward rendering
 We generate soft shadows by using the percentage closer filtering method sampling the shadow map around a pixel to determine if it is in shadow
 
