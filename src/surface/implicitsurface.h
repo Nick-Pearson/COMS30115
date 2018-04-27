@@ -15,7 +15,7 @@ class ImplicitSurface
 public:
 
   // raytrace against the surface
-  virtual bool Intersect(const glm::vec3& start, const glm::vec3& dir, float& outDistance, glm::vec3& outNormal) const = 0;
+  virtual bool Intersect(const glm::vec3& start, const glm::vec3& dir, float& outDistance, glm::vec3& outNormal, bool checkBackfaces = true) const = 0;
 
   // convert this surface to a triangle mesh
   virtual std::shared_ptr<Mesh> GenerateMesh() const = 0;

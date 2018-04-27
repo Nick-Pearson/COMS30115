@@ -4,7 +4,7 @@
 
 #include <glm/gtx/norm.hpp>
 
-bool Sphere::Intersect(const glm::vec3& start, const glm::vec3& dir, float& outDistance, glm::vec3& outNormal) const
+bool Sphere::Intersect(const glm::vec3& start, const glm::vec3& dir, float& outDistance, glm::vec3& outNormal, bool checkBackfaces /*= true*/) const
 {
   const glm::vec3 L = center - start;
   float tca = glm::dot(L, dir);
@@ -27,14 +27,14 @@ bool Sphere::Intersect(const glm::vec3& start, const glm::vec3& dir, float& outD
 
   if (t0 > t1) std::swap(t0, t1);
 
-  if (t0 < 0.0f || 
-    (glm::dot(n0, dir) >= 0.0f))
+  if (t0 < 0.0f ||
+    (checkBackfaces && glm::dot(n0, dir) >= 0.0f))
   {
     t0 = t1;
     n0 = n1;
 
-    if (t0 < 0.0f || 
-      (glm::dot(n0, dir) >= 0.0f))
+    if (t0 < 0.0f ||
+      (checkBackfaces && glm::dot(n0, dir) >= 0.0f))
       return false;
   }
 

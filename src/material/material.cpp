@@ -18,7 +18,7 @@ glm::vec3 Material::CalculateBRDF(const glm::vec3& view, const glm::vec3& light,
   // reflected direction L - 2(N . LN)
   const glm::vec3 idealReflectionRay = glm::normalize(light - (2.0f * glm::dot(light, normal) * normal));
   float spec = std::pow(std::max(0.f, glm::dot(idealReflectionRay, view)), specularExponent) * specular;
-  return colour +(spec  * glm::vec3(1.0f, 1.0f, 1.0f));
+  return colour + (spec  * glm::vec3(1.0f, 1.0f, 1.0f));
 }
 
 
