@@ -25,87 +25,70 @@ void KDNode::UpdateBounds(const Mesh* mesh)
   }
 }
 
-KDNode* KDNode::build(const Mesh* mesh, std::vector<int> triIndices, int depth)
+KDNode* KDNode::build(const Mesh* mesh, std::vector<int> localTriangleIndices, int depth) const
 {
   if (!mesh) return nullptr;
 
   KDNode* node = new KDNode();
-  node->trianglesIndices = triIndices;
-
+  node->trianglesIndices = localTriangleIndices;
   node->UpdateBounds(mesh);
 
-  // first, deal with the base cases
-  if (triIndices.size() <= 15)
+  // First, deal with the base cases
+  if (localTriangleIndices.size() <= 15)
     return node;
 
-  // find the midpoint of all triangles
-  std::vector<vec3> mids(triIndices.size());
+  // Find the midpoint of all triangles
+  std::vector<vec3> mids(localTriangleIndices.size());
   vec3 mid(0.0f, 0.0f, 0.0f);
 
-  for (int i = 0; i<triIndices.size(); i++) {
+  for (int i = 0; i < localTriangleIndices.size(); i++) {
     const glm::vec3 a0 = mesh->Verticies[mesh->Triangles[i].v0].position;
     const glm::vec3 a1 = mesh->Verticies[mesh->Triangles[i].v1].position;
     const glm::vec3 a2 = mesh->Verticies[mesh->Triangles[i].v2].position;
     mids[i] = (a0 + a1 + a2) / 3.0f;
-
-    mid += mids[i] / (float)triIndices.size();
+    mid += mids[i] / (float)localTriangleIndices.size();
   }
 
-  std::vector<int> leftTrisIndices;
-  std::vector<int> rightTrisIndices;
+  std::vector<int> leftTriangleIndices;
+  std::vector<int> rightTriangleIndices;
   int longestAxis = node->boundingBox.longestAxis();
 
-  for (int i = 0; i<triIndices.size(); i++) {
-
-    if (mid[longestAxis] >= mids[i][longestAxis])
-      leftTrisIndices.push_back(triIndices[i]);
-    else
-      rightTrisIndices.push_back(triIndices[i]);
-
+  // Sort triangles via midpoint
+  for (int i = 0; i < localTriangleIndices.size(); i++) {
+    if (mid[longestAxis] >= mids[i][longestAxis]) {
+      leftTriangleIndices.push_back(localTriangleIndices[i]);
+    } else {
+      rightTriangleIndices.push_back(localTriangleIndices[i]);
+    }
   }
 
-  if (leftTrisIndices.size() == 0 && rightTrisIndices.size() > 0)
-    leftTrisIndices = rightTrisIndices;
+  if (leftTriangleIndices.size() == 0 && rightTriangleIndices.size() > 0)
+    leftTriangleIndices = rightTriangleIndices;
 
-  if (rightTrisIndices.size() == 0 && leftTrisIndices.size() > 0)
-    rightTrisIndices = leftTrisIndices;
+  if (rightTriangleIndices.size() == 0 && leftTriangleIndices.size() > 0)
+    rightTriangleIndices = leftTriangleIndices;
 
   float duplicateThreshold = 0.5f;
-  bool thresholdReached = HasTooManyDupes(leftTrisIndices, rightTrisIndices, duplicateThreshold);
+  bool thresholdReached = HasDuplicates(leftTriangleIndices, rightTriangleIndices, duplicateThreshold);
 
   if (thresholdReached)
     return node;
 
-  node->child1 = build(mesh, leftTrisIndices, depth + 1);
-  node->child2 = build(mesh, rightTrisIndices, depth + 1);
+  node->child1 = build(mesh, leftTriangleIndices, depth + 1);
+  node->child2 = build(mesh, rightTriangleIndices, depth + 1);
   node->trianglesIndices.clear();
 
   return node;
 }
 
-void KDNode::PrintDebug(KDNode node, int depthLevel)
+bool KDNode::HasDuplicates(std::vector<int> leftTriangleIndices, std::vector<int> rightTriangleIndices, float threshold) const
 {
-  for (int i = 0; i<depthLevel; i++)
-    printf(" ");
-  if (node.trianglesIndices.size() > 0) {
-    // printf("%d: %s\n", depthLevel, node.boundingBox.toStr().c_str());
-
-    PrintDebug(*node.child1, depthLevel + 1);
-    PrintDebug(*node.child2, depthLevel + 1);
-  }
-  else {
-    printf("%d reached leaf\n", depthLevel);
-  }
-}
-
-bool KDNode::HasTooManyDupes(std::vector<int> leftTris, std::vector<int> rightTris, float threshold)
-{
-  int leftTrisDupeThreshold = leftTris.size() * threshold;
-  int rightTrisDupeThreshold = rightTris.size() * threshold;
+  int leftTrisDupeThreshold = leftTriangleIndices.size() * threshold;
+  int rightTrisDupeThreshold = rightTriangleIndices.size() * threshold;
   int duplicates = 0;
-  for (int i = 0; i<leftTris.size(); i++) {
-    for (int j = 0; j<rightTris.size(); j++) {
-      if (leftTris[i] == rightTris[j]) {
+  for (int i = 0; i < leftTriangleIndices.size(); i++) {
+    for (int j = 0; j < rightTriangleIndices.size(); j++) {
+      if (leftTriangleIndices[i] == rightTriangleIndices[j]) {
         duplicates++;
         if (duplicates > leftTrisDupeThreshold || duplicates > rightTrisDupeThreshold) {
           return true;
