@@ -17,7 +17,7 @@
 #include <glm/gtx/norm.hpp>
 
 #define MAX_BOUNCES 5
-#define NUM_DIRS 1000
+#define NUM_DIRS 100
 
 // if set to 0 then simple shading is used
 #define USE_GI 0
@@ -157,7 +157,7 @@ vec3 RaytraceRenderer::DirectLight(const vec3& in_ray, const Intersection& inter
     {
       glm::vec3 refractedDir = Material::GetRefractionDir(in_ray, normal, mat->ior);
       Intersection refrIntersection;
-      if (scene->ClosestIntersection(iPosition + (refractedDir * 0.1f), refractedDir, refrIntersection))
+      if (scene->ClosestIntersection(iPosition + (refractedDir * 0.1f), refractedDir, refrIntersection, false))
       {
         refrColour = DirectLight(refractedDir, refrIntersection, scene, depth - 1);
       }

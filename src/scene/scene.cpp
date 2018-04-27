@@ -71,20 +71,21 @@ void Scene::Update(float DeltaSeconds)
 }
 
 
-bool Scene::ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection) const
+bool Scene::ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection, bool checkBackfaces /*= true*/) const
 {
 	closestIntersection.distance = std::numeric_limits<float>::max();
 
 	return IntersectScene_Internal(start, dir, [&](float t, const Intersection& curIntersection) {
 		return t < curIntersection.distance;
-	}, closestIntersection, false);
+	}, closestIntersection, false, checkBackfaces);
 }
 
 bool Scene::ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const
 {
   const float len = glm::length(dir);
+  const glm::vec3 normDir = glm::normalize(dir);
 
-	return IntersectScene_Internal(start, glm::normalize(dir), [&](float t, const Intersection& curIntersection) {
+	return IntersectScene_Internal(start + (normDir * 0.001f), normDir, [&](float t, const Intersection& curIntersection) {
 		return t < len;
 	}, firstIntersection, true);
 }
@@ -113,11 +114,11 @@ vec3 Scene::GetEnvironmentColour(const vec3& dir) const
 }
 
 template<typename Func>
-bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection /*= false*/) const
+bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection /*= false*/,  bool checkBackfaces /*= true*/) const
 {
   for (const std::shared_ptr<Mesh> mesh : Meshes)
   {
-    if(!IntersectScene_Internal_KDNode<Func>(start, dir, mesh, Predicate, outIntersection, mesh->RootNode)) continue;
+    if(!IntersectScene_Internal_KDNode<Func>(start, dir, mesh, Predicate, outIntersection, mesh->RootNode, terminateOnValidIntersection)) continue;
 
     Triangle& triangle = mesh->Triangles[outIntersection.triangleIndex];
     const glm::vec3 P = start + (outIntersection.distance * dir);
@@ -147,7 +148,7 @@ bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate,
   {
     float t = 0.0f;
     glm::vec3 normal;
-    if (!surf->Intersect(start, dir, t, normal) ||
+    if (!surf->Intersect(start, dir, t, normal, checkBackfaces) ||
       t < 0.0f ||
       !Predicate(t, const_cast<const Intersection&>(outIntersection)))
       continue;
@@ -162,31 +163,35 @@ bool Scene::IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate,
 }
 
 template<typename Func>
-bool Scene::IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, const std::shared_ptr<Mesh> mesh, Func Predicate, Intersection& outIntersection, const KDNode* node) const
+bool Scene::IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, const std::shared_ptr<Mesh> mesh, Func Predicate, Intersection& outIntersection, const KDNode* node, bool terminateOnValidIntersection /*= false*/, bool checkBackfaces /*= true*/) const
 {
   if (!node->boundingBox.DoesIntersect(start, dir)) return false;
 
   if (node->child1 && node->child2)
   {
-    bool hitLeft = IntersectScene_Internal_KDNode(start, dir, mesh, Predicate, outIntersection, node->child1);
-    bool hitRight = IntersectScene_Internal_KDNode(start, dir, mesh, Predicate, outIntersection, node->child2);
+    bool hitLeft = IntersectScene_Internal_KDNode(start, dir, mesh, Predicate, outIntersection, node->child1, terminateOnValidIntersection, checkBackfaces);
+    bool hitRight = IntersectScene_Internal_KDNode(start, dir, mesh, Predicate, outIntersection, node->child2, terminateOnValidIntersection, checkBackfaces);
     return hitLeft || hitRight;
   }
 
   bool isHit = false;
   for (int i=0; i<node->trianglesIndices.size(); i++) {
-    if (CalcIntersectionInternal(start, dir, mesh, mesh->Triangles[node->trianglesIndices[i]], outIntersection)) {
+    if (CalcIntersectionInternal<Func>(start, dir, mesh, Predicate, mesh->Triangles[node->trianglesIndices[i]], outIntersection, checkBackfaces)) {
       isHit = true;
       outIntersection.triangleIndex = node->trianglesIndices[i];
+
+      if (terminateOnValidIntersection)
+        return true;
     }
   }
   return isHit;
 }
 
-bool Scene::CalcIntersectionInternal (const glm::vec3& start, const glm::vec3& direction, const std::shared_ptr<Mesh> mesh, const Triangle& triangle, Intersection &intersection)
+template<typename Func>
+bool Scene::CalcIntersectionInternal (const glm::vec3& start, const glm::vec3& direction, const std::shared_ptr<Mesh> mesh, Func Predicate, const Triangle& triangle, Intersection &intersection, bool checkBackfaces /*= true*/)
 {
   // Dot product optimisation
-  if (glm::dot(triangle.normal, direction) >= 0.0f)
+  if (checkBackfaces && glm::dot(triangle.normal, direction) >= 0.0f)
     return false;
 
   glm::vec3 v0 = mesh->Verticies[triangle.v0].position;
@@ -203,11 +208,13 @@ bool Scene::CalcIntersectionInternal (const glm::vec3& start, const glm::vec3& d
   glm::vec3 x;
 
   x.x = glm::determinant(glm::column(A, 0, b)) / detA;
+
+  if(x.x < 0.0f || !Predicate(x.x, const_cast<const Intersection&>(intersection))) return false;
+
   x.y = glm::determinant(glm::column(A, 1, b)) / detA;
   x.z = glm::determinant(glm::column(A, 2, b)) / detA;
 
-  if (x.y >= 0 && x.z >= 0 && x.y + x.z <= 1 && x.x >= 0
-    && x.x < intersection.distance) {
+  if (x.y >= 0.0f && x.z >= 0.0f && x.y + x.z <= 1.0f) {
     // There is an intersection and it is better than the previous best.
     // intersection.position = start + x.x * direction;
     intersection.distance = x.x;

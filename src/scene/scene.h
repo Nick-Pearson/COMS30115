@@ -23,7 +23,7 @@ using glm::mat3;
 struct Intersection
 {
 	Vertex vertexData;
-	float distance = 0.0f;
+	float distance = FLT_MAX;
 
   Intersection() {}
 
@@ -59,7 +59,7 @@ public:
 	void Update(float DeltaSeconds);
 
 	// returns the closest facing object along the Ray
-	bool ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection) const;
+	bool ClosestIntersection(const vec3& start, const vec3& dir, Intersection& closestIntersection, bool checkBackfaces = true) const;
 
 	// returns any intersecting object along the ray
   bool ShadowIntersection(const vec3& start, const vec3& dir, Intersection& firstIntersection) const;
@@ -87,11 +87,12 @@ private:
 
 	// querys the scene for intersections, will return if the predicate function returns true
 	template<typename Func>
-	bool IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false) const;
+	bool IntersectScene_Internal(const vec3& start, vec3 dir, Func Predicate, Intersection& outIntersection, bool terminateOnValidIntersection = false, bool checkBackfaces = true) const;
 
   template<typename Func>
-	bool IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, const std::shared_ptr<Mesh> mesh, Func Predicate, Intersection& outIntersection, const KDNode* node) const;
+	bool IntersectScene_Internal_KDNode(const vec3& start, vec3 dir, const std::shared_ptr<Mesh> mesh, Func Predicate, Intersection& outIntersection, const KDNode* node, bool terminateOnValidIntersection = false,  bool checkBackfaces = true) const;
 
-	static bool CalcIntersectionInternal (const glm::vec3& start, const glm::vec3& direction, const std::shared_ptr<Mesh> mesh, const Triangle& triangle, Intersection &intersection);
+	template<typename Func>
+	static bool CalcIntersectionInternal (const glm::vec3& start, const glm::vec3& direction, const std::shared_ptr<Mesh> mesh, Func Predicate, const Triangle& triangle, Intersection &intersection, bool checkBackfaces /*= true*/);
 };
 #endif

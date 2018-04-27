@@ -42,7 +42,7 @@ RAS_OBJS = $(SRCS:%.cpp=$(B_DIR)/src_ras/%.o)
 
 ########
 #   Some phony targets as shortcuts
-DEFAULT = rasterizer
+DEFAULT = raytracer
 default: $(DEFAULT)
 all: raytracer rasterizer
 run: $(DEFAULT)

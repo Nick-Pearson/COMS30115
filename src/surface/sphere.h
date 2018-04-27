@@ -8,7 +8,7 @@ class Sphere : public ImplicitSurface
 public:
 
   // ImplicitSurface interface
-  bool Intersect(const glm::vec3& start, const glm::vec3& dir, float& outDistance, glm::vec3& outNormal) const override;
+  bool Intersect(const glm::vec3& start, const glm::vec3& dir, float& outDistance, glm::vec3& outNormal, bool checkBackfaces = true) const override;
 
   std::shared_ptr<Mesh> GenerateMesh() const override;
 
