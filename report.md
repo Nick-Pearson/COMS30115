@@ -21,8 +21,8 @@ This is our final raytracer image (1024x1024, 10,000 samples per pixel). To comp
 We implemented path tracing global illumination, we then extended this to include importance sampling for our specular, reflective and refractive materials.
 The results of these can be seen in the final image particularly in the floor material which is normal mapped and has a specular material.
 
-#### Depth of field
-TODO
+#### Area lights
+As part of global illumination we also implemented area lights which means we were able to achieve soft shadows.
 
 ### Implicit surfaces
 Our solution includes implicit surfaces using an abtract base class, we implemented a sphere surface but this systemc could be used to create any surface with a Ray intersection function
@@ -32,7 +32,7 @@ We implemented a loader for ".obj" files which includes loading of vertex positi
 This can be seen from the rabbit that is loaded in.
  
 #### KD-Trees
-TODO
+We've made use of KD-Tree's to optimise the process of the finding of intersections with triangles in meshes. The program first builds out a tree for each mesh. Each node then has has its bounding box verified and then recursively checks it's child nodes until it finds a match. This signifcantly increased render times.
 
 ### Other Optimisations
 We heavily optimised the raytracer code including
