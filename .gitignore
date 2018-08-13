@@ -18,3 +18,9 @@ trace.out
 
 x64/
 .vs/
+
+CMakeCache.txt
+*.cmake
+CMakeFiles/
+Makefile
+bin/
