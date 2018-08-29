@@ -18,8 +18,10 @@
 #include "texture/texture.h"
 #include "structs/KDTree.h"
 
-#define SCREEN_WIDTH 512
-#define SCREEN_HEIGHT 512
+#ifndef RESOLUTION
+  #define RESOLUTION 512
+#endif
+
 #define SINGLE_FRAME 0
 
 void Update(float deltaMilliseconds);
@@ -75,7 +77,7 @@ int main(int argc, char** argv)
   Renderer* renderer = new RasterizeRenderer;
 #endif
 
-  renderer->Initialise(SCREEN_WIDTH, SCREEN_HEIGHT);
+  renderer->Initialise(RESOLUTION, RESOLUTION);
 
   #if USE_SDL
 int t = SDL_GetTicks();

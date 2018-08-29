@@ -27,8 +27,16 @@ if (USE_SDL)
   find_package(SDL2 REQUIRED)
   include_directories(${SDL2_INCLUDE_DIRS})
   set (EXTRA_LIBS ${EXTRA_LIBS} ${SDL2_LIBRARIES})
-   add_definitions(-DUSE_SDL=1)
+  add_definitions(-DUSE_SDL=1)
 endif (USE_SDL)
+
+option (GI "Render using global illumination (raytracer)" ON)
+
+if (GI)
+  add_definitions(-DGI=1)
+else ()
+  add_definitions(-DGI=0)
+endif ()
 
 include_directories(src)
 include_directories(libs/glm)
@@ -36,7 +44,9 @@ include_directories(libs/stb)
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-string(STRIP ${EXTRA_LIBS} EXTRA_LIBS)
+if (EXTRA_LIBS)
+	string(STRIP ${EXTRA_LIBS} EXTRA_LIBS)
+endif (EXTRA_LIBS)
 
 add_executable(raytracer ${SOURCES})
 target_link_libraries(raytracer ${EXTRA_LIBS})

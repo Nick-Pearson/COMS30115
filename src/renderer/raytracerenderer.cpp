@@ -19,8 +19,9 @@
 #define MAX_BOUNCES 5
 #define NUM_DIRS 10000
 
-// if set to 0 then simple shading is used
-#define USE_GI 0
+#ifndef GI
+  #define GI 1
+#endif
 
 using glm::vec4;
 using glm::mat4;
@@ -46,7 +47,7 @@ void RaytraceRenderer::Draw(const Scene* scene)
       screenptr->PutFloatPixel(x, y, colour);
     }
 
-#if USE_GI
+#if GI
     std::cout << "Done row " << y << std::endl;
 #endif
   }
@@ -67,7 +68,7 @@ vec3 RaytraceRenderer::ShadePoint(const vec3& position, const vec3& dir, const S
   if (!scene->ClosestIntersection(position, dir, intersection))
     return vec3(0.0f, 0.0f, 0.0f);
 
-#if USE_GI
+#if GI
   float r = 0.0f, g = 0.0f, b = 0.0f;
 
   #pragma omp parallel for reduction(+:r,g,b)

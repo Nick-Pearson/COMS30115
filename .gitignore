@@ -24,3 +24,8 @@ CMakeCache.txt
 CMakeFiles/
 Makefile
 bin/
+lib/
+rasterizer.dir/
+raytracer.dir/
+Debug/
+Release/
